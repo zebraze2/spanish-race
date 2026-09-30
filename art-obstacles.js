@@ -10,6 +10,7 @@ const KINDS = {
   pit: { w: 130, icon: '🐊', drawn: true },
   drawbridge: { w: 150, icon: '🌉', drawn: true },
   gatorbridge: { w: 300, icon: '🐊', drawn: true },
+  volcano: { w: 140, icon: '🌋', drawn: true },
 };
 
 function drawBanana(x, y, o) {
@@ -98,12 +99,36 @@ function drawSpikes(x, y, o) {
   }
 }
 
+// The finale: a bubbling lava pit. After a wrong answer, stepping stones rise out of the lava.
+function drawLava(x, y, o, t) {
+  const rx = o.w / 2;
+  ctx.globalAlpha = 0.3; blob(x, y - 22, rx + 26, 52, 11, 0.05, '#ffb020'); ctx.globalAlpha = 1;
+  blob(x, y - 22, rx + 8, 44, 11, 0.07, '#5b4a40');
+  blob(x, y - 22, rx, 36, 11, 0.07, '#ff5a1a');
+  blob(x + 6, y - 20, rx * 0.7, 22, 9, 0.1, '#ff8a1f');
+  blob(x - 10, y - 24, rx * 0.35, 10, 7, 0.1, '#ffc93c');
+  for (let i = 0; i < 4; i++) {
+    const k = (t * 0.9 + i * 0.27) % 1;
+    ngon(x - rx * 0.6 + i * rx * 0.4, y - 18 - k * 10, 3 + k * 7, 6, 0, `rgba(255,225,130,${1 - k})`);
+  }
+  if (o.state === 'stoned') for (const sx of [-0.62, -0.2, 0.22, 0.64]) {
+    blob(x + sx * rx, y - 4, 20, 8, 7, 0.1, '#8f96a0'); blob(x + sx * rx, y - 7, 16, 5, 7, 0.1, '#b8c0c8');
+  }
+}
+function drawFireball(x, y, o) {
+  if (!(o.chompT > 0)) return;
+  const k = o.chompT / 0.7, fx = x - 20 + k * 10, fy = y - 20 - Math.sin(k * Math.PI) * 130;
+  poly([fx - 14, fy, fx, fy + 42, fx + 14, fy], '#ff6a2a');
+  ngon(fx, fy, 18, 8, k * 6, '#ff5a1a'); ngon(fx, fy, 12, 8, k * 6, '#ffb020'); ngon(fx, fy, 6, 6, 0, '#fff3a0');
+}
+
 /* ---------- which layer each obstacle draws in ---------- */
 function drawObstacleGround(o, sx, G) { // flat things under the cars
   if (sx < -420 || sx > VIEW.w + 420) return;
   if (o.kind === 'puddle') drawPuddle(sx, YOU_GY, o, G.t);
   else if (o.kind === 'pit' || o.kind === 'drawbridge') drawPit(sx, YOU_GY, o, G.t);
   else if (o.kind === 'gatorbridge') drawRiver(sx, o, G.t);
+  else if (o.kind === 'volcano') drawLava(sx, YOU_GY, o, G.t);
 }
 function drawObstacleUpright(o, sx, G) { // standing things on your lane
   if (sx < -300 || sx > VIEW.w + 300) return;
@@ -118,6 +143,7 @@ function drawObstacleFront(o, sx, G) { // gators lunging out, in front of your c
   if (sx < -420 || sx > VIEW.w + 420) return;
   if (o.kind === 'pit' || o.kind === 'drawbridge') drawPitChomp(sx, YOU_GY, o);
   else if (o.kind === 'gatorbridge') drawRiverGators(sx, o, G.t);
+  else if (o.kind === 'volcano') drawFireball(sx, YOU_GY, o);
 }
 
 /* Level-card preview: the obstacle on a little strip of road. */
@@ -136,6 +162,7 @@ function renderObstacleThumb(canvas, kind) {
     else if (kind === 'pit') { blob(0, -2, 70, 16, 9, 0.08, '#4a3222'); gatorHead(20, -4, 0.62, 0.9, -1); }
     else if (kind === 'drawbridge') { blob(10, -2, 60, 14, 9, 0.08, '#4a3222'); drawDrawbridge(-50, 4, { w: 110, bridge: 0.75 }); }
     else if (kind === 'gatorbridge') { poly([-110, -16, 110, -16, 110, 16, -110, 16], '#5fbfd0'); gatorHead(40, -8, 0.95, 1, -1); }
+    else if (kind === 'volcano') { drawLava(0, 20, { w: 120 }, 0.3); drawFireball(10, 20, { chompT: 0.12 }); }
     ctx.restore();
   });
 }

@@ -27,17 +27,13 @@ const MODE_INFO = {
   },
 };
 const CHOICES_ES = [3, 3, 3, 4, 4, 4, 4, 5, 5, 5];
-const OBSTACLE_TRACK = ['banana', 'puddle', 'cone', 'log', 'fire', 'spikes', 'pit', 'drawbridge', 'gatorbridge'];
+const OBSTACLE_TRACK = ['banana', 'puddle', 'cone', 'log', 'fire', 'spikes', 'pit', 'drawbridge', 'gatorbridge', 'volcano'];
 
 const levelList = mode => (mode === 'es' ? VOCAB.levels : ENGLISH.levels);
 const levelCount = mode => levelList(mode).length;
 const levelName = (mode, lvl) => levelList(mode)[lvl - 1].name;
-function levelObstacles(mode, lvl) {
-  if (mode === 'es') return VOCAB.levels[lvl - 1].obstacles;
-  if (lvl >= 19) return ['fire', 'pit', 'gatorbridge', 'spikes', 'drawbridge', 'log', 'gatorbridge', 'fire'];
-  const k = Math.floor((lvl - 1) / 2); // English: two levels per obstacle kind
-  return [OBSTACLE_TRACK[k], OBSTACLE_TRACK[k], OBSTACLE_TRACK[Math.max(0, k - 1)]];
-}
+// One kind of obstacle per level, wilder each level (English: each kind lasts two levels).
+const levelObstacle = (mode, lvl) => (mode === 'es' ? VOCAB.levels[lvl - 1].obstacle : OBSTACLE_TRACK[Math.floor((lvl - 1) / 2)]);
 // Robot's finish time vs. a perfect run: easy at level 1, tight at the top level.
 const cpuMargin = (mode, lvl) => 1.6 - 0.48 * (lvl - 1) / (levelCount(mode) - 1);
 

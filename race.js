@@ -11,12 +11,9 @@ let G = null, raf = 0, lastT = 0;
 
 /* One obstacle per question; a gas station after every other obstacle. */
 function buildTrack(lang, lvl) {
-  const qs = makeQuestions(lang, lvl), kinds = levelObstacles(lang, lvl), obs = [], stations = [];
+  const qs = makeQuestions(lang, lvl), kind = levelObstacle(lang, lvl), w = KINDS[kind].w, obs = [], stations = [];
   let x = 520;
   qs.forEach((q, i) => {
-    let kind = kinds[i % kinds.length];
-    if (!KINDS[kind].drawn) kind = 'banana';
-    const w = KINDS[kind].w;
     obs.push({ x: x + w / 2, w, kind, q, state: 'ready', asked: false, bridge: 1, chompT: 0 });
     x += w;
     if (i % 2 === 0 && i < qs.length - 1) { stations.push({ x: x + 300 }); x += 600; }
@@ -160,6 +157,9 @@ function failHit(o) {
     case 'pit': case 'drawbridge':
       o.state = o.kind === 'pit' ? 'planked' : 'lowering'; o.lowerRate = 0.9; o.chompT = 0.001;
       p.backT = 0.5; p.slowT = 1.3; SFX.chomp(); say('🐊 ¡Ñam!', '#2f9e44'); break;
+    case 'volcano':
+      o.state = 'stoned'; o.chompT = 0.001; p.sootT = 2.6;
+      p.backT = 0.5; p.slowT = 1.3; SFX.sizzle(); SFX.bonk(); say('🌋 ¡Ay!'); break;
     case 'gatorbridge':
       o.state = 'passed'; o.leap = { t: 0, x: p.x + 40, hit: true };
       p.backT = 0.6; p.slowT = 1.2; SFX.roar(); setTimeout(() => SFX.chomp(), 300); say('🐊 ¡ÑAM!', '#2f9e44'); break;
@@ -175,8 +175,10 @@ function updateObstacle(o, dt) {
     if (f.y > 0) { f.y = 0; f.vy *= -0.3; f.vx *= 0.5; }
   }
   if (o.leap && (o.leap.t += dt) > 1.5) o.leap = null;
-  // near misses: the gator snaps at you as you fly past
-  if (o.kind === 'pit' && o.state === 'cleared' && !o.snapped && Math.abs(p.x - o.x) < 50) { o.snapped = true; o.chompT = 0.001; SFX.chomp(); }
+  // near misses: the gator snaps (or the volcano spits fire) as you fly past
+  if ((o.kind === 'pit' || o.kind === 'volcano') && o.state === 'cleared' && !o.snapped && Math.abs(p.x - o.x) < 50) {
+    o.snapped = true; o.chompT = 0.001; if (o.kind === 'pit') SFX.chomp(); else SFX.sizzle();
+  }
   if (o.kind === 'gatorbridge' && o.state === 'cleared' && !o.leapt && p.x > o.x - 10) { o.leapt = true; o.leap = { t: 0, x: p.x - 110, hit: false }; SFX.roar(); }
 }
 

@@ -37,14 +37,7 @@ for (const lang of ['es', 'en']) {
 }
 
 /* ---------- level map ---------- */
-function renderLevelThumb(canvas, lang, lvl) {
-  const kind = lvl === levelCount(lang) ? 'trophy' : levelObstacles(lang, lvl)[0];
-  if (kind !== 'trophy' && KINDS[kind].drawn) return renderObstacleThumb(canvas, kind);
-  withCtx(canvas, (w, h) => {
-    ctx.font = `${h * 0.66}px sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText(kind === 'trophy' ? '🏆' : KINDS[kind].icon, w / 2, h / 2 + 2);
-  });
-}
+const renderLevelThumb = (canvas, lang, lvl) => renderObstacleThumb(canvas, levelObstacle(lang, lvl));
 function renderMenu() {
   const lang = SAVE.lang, t = MODE_INFO[lang].t, n = levelCount(lang);
   $('mapTitle').textContent = lang === 'es' ? '🇪🇸 Español' : '🔤 English';
