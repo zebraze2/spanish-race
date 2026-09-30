@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Carrera de Palabras</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Andika:wght@400;700&family=Baloo+2:wght@600;800&family=Lilita+One&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<section id="home" class="screen calm">
+  <div class="topbar">
+    <span></span>
+    <div class="topbar-right">
+      <button class="round-btn shop-btn" data-from="home" aria-label="Car shop">🛒</button>
+      <div class="bank"><span class="coin"></span><span class="bank-count">0</span></div>
+    </div>
+  </div>
+  <h1 class="title chunky-text">Carrera de <span class="accent">Palabras</span></h1>
+  <div class="modes">
+    <button class="mode es" id="modeEs"><div class="big">🇪🇸</div><div class="nm">Español</div></button>
+    <button class="mode en" id="modeEn"><div class="big abc">abc</div><div class="nm">English</div></button>
+  </div>
+</section>
+
+<section id="menu" class="screen calm hidden">
+  <div class="topbar">
+    <button class="round-btn" id="mapBack" aria-label="Back">⬅️</button>
+    <div class="topbar-right">
+      <button class="round-btn shop-btn" data-from="menu" aria-label="Car shop">🛒</button>
+      <div class="bank"><span class="coin"></span><span class="bank-count">0</span></div>
+    </div>
+  </div>
+  <h1 class="map-title chunky-text" id="mapTitle"></h1>
+  <div class="subtitle" id="mapSub"></div>
+  <div class="levels" id="levels"></div>
+</section>
+
+<section id="learn" class="screen calm hidden">
+  <button class="round-btn back" id="learnBack" aria-label="Back">⬅️</button>
+  <div class="learn-head">
+    <h2 class="chunky-text" id="learnTitle"></h2>
+    <p id="learnHint"></p>
+  </div>
+  <div class="words" id="words"></div>
+  <div class="row">
+    <button class="big-btn alt" id="hearAll"></button>
+    <button class="big-btn primary" id="goRace"></button>
+  </div>
+</section>
+
+<section id="race" class="screen hidden">
+  <canvas id="cv"></canvas>
+  <div class="hud">
+    <button class="round-btn" id="raceHome" aria-label="Back to levels">🏠</button>
+    <div class="progress">
+      <div class="mk cpu" id="mkCpu">🤖</div>
+      <div class="mk you" id="mkYou">TÚ</div>
+      <div class="flag">🏁</div>
+    </div>
+    <div class="gas" id="gas" aria-label="Gas">⛽<div class="gas-bar"><div id="gasFill"></div></div></div>
+    <div class="lvl-tag" id="lvlTag"></div>
+  </div>
+  <div class="count chunky-text hidden" id="count"></div>
+
+  <div id="quiz" class="ask-layer hidden">
+    <div class="bubble">
+      <div class="q-line"><span id="qPrompt"></span>
+        <button class="round-btn q-say" id="qSay" aria-label="Hear it again">🔊</button></div>
+      <div class="choices" id="choices"></div>
+      <div class="q-feedback" id="qFeedback"></div>
+    </div>
+  </div>
+
+  <div id="gasAsk" class="ask-layer hidden">
+    <div class="bubble gas-bubble">
+      <div class="q-line">⛽ <span id="gasTitle"></span></div>
+      <div class="gas-big"><div id="gasBigFill"></div></div>
+      <div class="choices">
+        <button class="choice yes" id="gasYes" aria-label="Yes">✅</button>
+        <button class="choice no" id="gasNo" aria-label="No">❌</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="reward" class="screen calm hidden">
+  <div class="burst"></div>
+  <div class="bank" id="rwBox"><span class="coin"></span><span id="rwBank">0</span></div>
+  <h1 class="chunky-text" id="rwTitle"></h1>
+  <canvas id="rwCar"></canvas>
+  <div class="stars" id="rwStars"><span class="star">⭐</span><span class="star">⭐</span><span class="star">⭐</span></div>
+  <div id="rwScore"></div>
+  <div id="rwEarned"></div>
+  <div class="need hidden" id="rwNeed">🔒 ⭐⭐⭐</div>
+  <div class="unlock hidden" id="rwUnlock">🔓 <span id="rwUnlockNum"></span></div>
+  <div class="row hidden" id="rwButtons">
+    <button class="round-btn" id="rwHome" aria-label="Levels">🏠</button>
+    <button class="round-btn shop-btn" data-from="reward" aria-label="Car shop">🛒</button>
+    <button class="round-btn" id="rwAgain" aria-label="Again">🔁</button>
+    <button class="big-btn primary" id="rwNext">➡️ <span id="rwNextLabel"></span></button>
+  </div>
+</section>
+
+<section id="shop" class="screen calm hidden">
+  <div class="topbar">
+    <button class="round-btn" id="shopBack" aria-label="Back">⬅️</button>
+    <div class="bank"><span class="coin"></span><span class="bank-count">0</span></div>
+  </div>
+  <h1 class="map-title chunky-text" id="shopTitle"></h1>
+  <div class="cars" id="cars"></div>
+</section>
+
+<script src="words.js"></script>
+<script src="english.js"></script>
+<script src="clips.js"></script>
+<script src="audio.js"></script>
+<script src="questions.js"></script>
+<script src="art-scene.js"></script>
+<script src="art-cars.js"></script>
+<script src="art-obstacles.js"></script>
+<script src="art-gators.js"></script>
+<script src="race.js"></script>
+<script src="screens.js"></script>
+</body>
+</html>
