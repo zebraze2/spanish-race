@@ -79,30 +79,34 @@ function enQuestions(lvl) {
     const byShape = lv.type === 'name';
     const options = shuffle([letter, ...pickLetters(letter, pool, (byShape ? E.shapeTwins : E.soundTwins)[letter],
       n - 1, lv.tricky, byShape ? '' : E.sameSound[letter] || '')]);
-    const q = { ...base, answer: letter, options, reveal: ['en_oops', 'e_learn_' + letter], revealText: `This one is ${up(letter)} 👉` };
+    const q = { ...base, answer: letter, options, reveal: ['en_oops', ...letterLesson(letter)], revealText: `This one is ${up(letter)} 👉` };
     if (byShape) return { ...q, prompt: '<span class="q-pic">🔊</span> Which letter?', ask: ['e_name_' + letter], replay: ['e_name_' + letter] };
-    if (lv.type === 'sound') return { ...q, prompt: '<span class="q-pic">👂</span> Which letter makes this sound?', ask: ['e_sound_' + letter], replay: ['e_sound_' + letter] };
-    const clip = (first ? 'e_first_' : 'e_last_') + it;
+    if (lv.type === 'sound') return { ...q, prompt: '<span class="q-pic">👂</span> Which letter makes this sound?', ask: ['e_soundq', 'ph_' + letter], replay: ['ph_' + letter] };
+    const ask = first ? ['e_firstq_' + it, ...(E.soundSkip.includes(letter) ? [] : ['ph_' + letter, 'ph_' + letter]), 'e_word_' + it] : ['e_last_' + it];
     return { ...q, prompt: `<span class="q-pic">${E.pics[it]}</span> ${first ? 'starts' : 'ends'} with…?`,
-      ask: [clip], replay: [clip], reveal: ['en_oops', (first ? 'e_lfirst_' : 'e_llast_') + it] };
+      ask, replay: ask, reveal: ['en_oops', (first ? 'e_lfirst_' : 'e_llast_') + it] };
   });
 }
+
+// "C… /k/… cat!": the letter's name, its recorded sound, then its picture word
+// (the sound is left out for the soundSkip letters, as in ABC Blast).
+const letterLesson = l => ['e_nm_' + l, ...(ENGLISH.soundSkip.includes(l) ? [] : ['ph_' + l]), 'e_word_' + ENGLISH.letters[l].word];
 
 /* Practice cards shown before the race: tap to hear. */
 function learnCards(mode, lvl) {
   if (mode === 'es') {
-    return VOCAB.levels[lvl - 1].words.map(id => { const w = VOCAB.words[id]; return { big: w.pic, title: w.es, sub: w.en, clip: 'w_' + id }; });
+    return VOCAB.levels[lvl - 1].words.map(id => { const w = VOCAB.words[id]; return { big: w.pic, title: w.es, sub: w.en, clips: ['w_' + id] }; });
   }
   const E = ENGLISH, lv = E.levels[lvl - 1], up = s => (lv.upper ? s.toUpperCase() : s);
   return [...new Set(lv.items)].map(it => {
     if (lv.type === 'name' || lv.type === 'sound') {
       const L = E.letters[it];
-      return { big: up(it), letter: true, title: '', sub: `${L.pic} ${L.word}`, clip: 'e_learn_' + it };
+      return { big: up(it), letter: true, title: '', sub: `${L.pic} ${L.word}`, clips: letterLesson(it) };
     }
-    if (lv.type === 'first') return { big: E.pics[it], title: it, sub: `starts with ${it[0]}`, clip: 'e_lfirst_' + it };
-    if (lv.type === 'last') return { big: E.pics[it], title: it, sub: `ends with ${it[it.length - 1]}`, clip: 'e_llast_' + it };
+    if (lv.type === 'first') return { big: E.pics[it], title: it, sub: `starts with ${it[0]}`, clips: ['e_lfirst_' + it] };
+    if (lv.type === 'last') return { big: E.pics[it], title: it, sub: `ends with ${it[it.length - 1]}`, clips: ['e_llast_' + it] };
     const sp = E.spell[it];
-    return sp.pic ? { big: sp.pic, title: it, sub: '', clip: 'e_lspell_' + it }
-      : { big: it, letter: true, title: '', sub: '', clip: 'e_lspell_' + it };
+    return sp.pic ? { big: sp.pic, title: it, sub: '', clips: ['e_lspell_' + it] }
+      : { big: it, letter: true, title: '', sub: '', clips: ['e_lspell_' + it] };
   });
 }

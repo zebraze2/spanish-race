@@ -64,10 +64,12 @@ const Voice = (() => {
     if ('speechSynthesis' in window) speechSynthesis.cancel();
   }
 
+  // A clip is recorded if it has its own file (the human letter sounds) or the manifest lists it.
+  const hasClip = key => !!(CLIPS[key] && CLIPS[key].src) || files.has(fileId(key));
   async function load(key) {
     if (buffers[key]) return buffers[key];
     const ac = ensureAudio();
-    const res = await fetch('audio/' + fileId(key) + '.m4a?v=' + version(key));
+    const res = await fetch((CLIPS[key] && CLIPS[key].src) || 'audio/' + fileId(key) + '.m4a?v=' + version(key));
     if (!res.ok) throw new Error('missing clip ' + key);
     return (buffers[key] = await ac.decodeAudioData(await res.arrayBuffer()));
   }
@@ -102,7 +104,7 @@ const Voice = (() => {
     for (const key of keys) {
       if (my !== token) return;
       try {
-        if (files.has(fileId(key))) await playClip(key, my);
+        if (hasClip(key)) await playClip(key, my);
         else await speakTTS(key);
       } catch { if (my === token) await speakTTS(key); }
     }
@@ -113,7 +115,7 @@ const Voice = (() => {
     say: (key, onend) => seq([key], onend),
     seq,
     stop,
-    preload: keys => keys.forEach(k => { if (files.has(fileId(k))) load(k).catch(() => {}); }),
+    preload: keys => keys.forEach(k => { if (hasClip(k)) load(k).catch(() => {}); }),
     hasClips: () => files.size > 0,
   };
 })();

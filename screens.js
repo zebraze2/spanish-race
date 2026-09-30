@@ -84,12 +84,12 @@ function openLearn(lang, lvl) {
       ensureAudio();
       document.querySelectorAll('.word.playing').forEach(x => x.classList.remove('playing'));
       c.classList.add('playing', 'heard');
-      Voice.say(cd.clip, () => c.classList.remove('playing'));
+      Voice.seq(cd.clips, () => c.classList.remove('playing'));
     };
-    c.dataset.clip = cd.clip;
+    c.dataset.clips = cd.clips.join(',');
     wrap.appendChild(c);
   });
-  Voice.preload(cards.map(c => c.clip));
+  Voice.preload(cards.flatMap(c => c.clips));
   show('learn'); $('learn').scrollTop = 0;
 }
 $('learnBack').onclick = () => { Voice.stop(); renderMenu(); };
@@ -102,7 +102,7 @@ $('hearAll').onclick = () => {
     if (i >= cards.length || $('learn').classList.contains('hidden')) return;
     const c = cards[i++]; c.classList.add('playing', 'heard');
     c.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-    Voice.say(c.dataset.clip, () => setTimeout(next, 350));
+    Voice.seq(c.dataset.clips.split(','), () => setTimeout(next, 350));
   };
   next();
 };

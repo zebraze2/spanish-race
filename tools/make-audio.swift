@@ -98,7 +98,8 @@ for lang in ["en", "es"] where onlyLang == nil || onlyLang == lang {
   }
   print("[\(lang)] voice: \(voice.name) (\(voice.identifier))")
   let rate: Float = lang == "es" ? 0.42 : 0.47
-  for (id, clip) in clips.sorted(by: { $0.key < $1.key }) where clip["lang"] == lang {
+  // clips with their own "src" (the human-recorded letter sounds) are never synthesized
+  for (id, clip) in clips.sorted(by: { $0.key < $1.key }) where clip["lang"] == lang && clip["src"] == nil {
     let text = clip["text"]!, m4a = audioDir.appendingPathComponent(id + ".m4a")
     if !force && texts[id] == text && voicesUsed[lang] == voice.identifier && FileManager.default.fileExists(atPath: m4a.path) { skipped += 1; continue }
     let caf = FileManager.default.temporaryDirectory.appendingPathComponent(id + ".caf")
@@ -109,7 +110,12 @@ for lang in ["en", "es"] where onlyLang == nil || onlyLang == lang {
   voicesUsed[lang] = voice.identifier
 }
 
-let files = clips.keys.filter { FileManager.default.fileExists(atPath: audioDir.appendingPathComponent($0 + ".m4a").path) }.sorted()
+// delete recordings of lines the game no longer uses
+for name in (try? FileManager.default.contentsOfDirectory(atPath: audioDir.path)) ?? [] where name.hasSuffix(".m4a") {
+  let id = String(name.dropLast(4))
+  if clips[id] == nil || clips[id]?["src"] != nil { try? FileManager.default.removeItem(at: audioDir.appendingPathComponent(name)) }
+}
+let files = clips.keys.filter { clips[$0]?["src"] == nil && FileManager.default.fileExists(atPath: audioDir.appendingPathComponent($0 + ".m4a").path) }.sorted()
 manifest = ["voices": voicesUsed, "files": files, "texts": texts.filter { files.contains($0.key) }]
 let data = try! JSONSerialization.data(withJSONObject: manifest, options: [.prettyPrinted, .sortedKeys])
 try! data.write(to: manifestURL)

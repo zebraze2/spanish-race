@@ -43,6 +43,10 @@ window.ENGLISH = {
     w: 'rv', x: 'sz', y: 'jw', z: 'sv',
   },
   sameSound: { c: 'kq', k: 'cq', q: 'ck' }, // never offer two letters that make the same sound
+  // Letter sounds are human recordings (audio/phonics, from Sound City Reading, as in ABC Blast).
+  // These letters' recordings are confusing for a beginner, so (like ABC Blast) we never quiz
+  // their sound and leave the sound out of prompts; they still appear as wrong choices.
+  soundSkip: 'inqwy',
 
   // First/last-sound pictures (letter = first or last letter of the word).
   pics: {
@@ -85,10 +89,10 @@ window.ENGLISH = {
     { name: 'Little Letters',       type: 'name',  items: 'aceosmtx' },
     { name: 'Tricky Little Letters', type: 'name', items: 'bdpqgjil', tricky: true },
     { name: 'More Little Letters',  type: 'name',  items: 'fhknruwy', tricky: true },
-    { name: 'Sounds: mmm sss',      type: 'sound', items: 'msflnr' },
+    { name: 'Sounds: mmm sss',      type: 'sound', items: 'msflrz' },
     { name: 'Sounds: b d t',        type: 'sound', items: 'bdtpcg' },
-    { name: 'Sounds: a e i o u',    type: 'sound', items: 'aeioumst' },
-    { name: 'More Sounds',          type: 'sound', items: 'hjkvwyzx', tricky: true },
+    { name: 'Vowel Sounds',    type: 'sound', items: 'aeoumstb' },
+    { name: 'More Sounds',          type: 'sound', items: 'hjkvxdlg', tricky: true },
     { name: 'First Sounds 1',       type: 'first', items: ['snake', 'monkey', 'fish', 'lion', 'nose', 'rainbow'] },
     { name: 'First Sounds 2',       type: 'first', items: ['bear', 'dog', 'pig', 'turtle', 'cat', 'goat', 'kite', 'juice'], tricky: true },
     { name: 'First Sounds 3',       type: 'first', items: ['apple', 'egg', 'octopus', 'umbrella', 'volcano', 'whale', 'yo-yo', 'zebra'], tricky: true },

@@ -3,25 +3,28 @@
    the browser fallback voice just reads the spelling. */
 const CLIPS = (() => {
   const C = {};
-  const add = (id, lang, text) => { C[id] = { lang, text }; };
+  const add = (id, lang, text, src) => { C[id] = src ? { lang, text, src } : { lang, text }; };
 
   // Spanish mode
   for (const [id, w] of Object.entries(VOCAB.words)) add('w_' + id, 'es', w.say || w.es);
   for (const [id, t] of Object.entries(VOCAB.phrases.es)) add('p_' + id, 'es', t);
 
-  // English mode
+  // English mode. Letter sounds (ph_*) are human recordings, not synthesized; prompts are
+  // stitched together from pieces, e.g. "What does bear start with?" + /b/ + /b/ + "bear!"
   const E = ENGLISH, L = E.letters;
-  const snd = l => `[[${L[l].ipa}|${L[l].say}]]`;
   const sayIt = w => (E.spell[w].ipa ? `[[${E.spell[w].ipa}|${w}]]` : w);
   for (const l of Object.keys(L)) {
+    add('ph_' + l, 'en', L[l].say, `audio/phonics/${l}.m4a`);
+    add('e_nm_' + l, 'en', `${L[l].name}.`);
     add('e_name_' + l, 'en', `Which one is the letter ${L[l].name}?`);
-    add('e_sound_' + l, 'en', `Which letter makes the sound ${snd(l)}?`);
-    add('e_learn_' + l, 'en', `${L[l].name}. ${snd(l)}, ${snd(l)}, ${L[l].word}!`);
+    add('e_word_' + L[l].word, 'en', `${L[l].word}!`);
   }
+  add('e_soundq', 'en', 'Which letter makes this sound?');
   for (const lv of E.levels) {
     for (const it of lv.items) {
       if (lv.type === 'first') {
-        add('e_first_' + it, 'en', `What does ${it} start with? ${snd(it[0])}, ${snd(it[0])}, ${it}.`);
+        add('e_firstq_' + it, 'en', `What does ${it} start with?`);
+        add('e_word_' + it, 'en', `${it}!`);
         add('e_lfirst_' + it, 'en', `${it}. ${it} starts with ${L[it[0]].name}.`);
       } else if (lv.type === 'last') {
         const last = it[it.length - 1];
