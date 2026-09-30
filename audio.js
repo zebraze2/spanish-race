@@ -12,10 +12,13 @@ function ensureAudio() {
 }
 
 const Voice = (() => {
-  let files = new Set();
+  let files = new Set(), texts = {};
   const buffers = {};
-  fetch('audio/manifest.json').then(r => (r.ok ? r.json() : null))
-    .then(m => { if (m && m.files) files = new Set(m.files); }).catch(() => {});
+  // no-cache: re-check the manifest every visit so newly recorded clips show up
+  fetch('audio/manifest.json', { cache: 'no-cache' }).then(r => (r.ok ? r.json() : null))
+    .then(m => { if (m && m.files) { files = new Set(m.files); texts = m.texts || {}; } }).catch(() => {});
+  // version tag per clip (from its recorded text) so a re-recorded clip is never served stale
+  const version = key => { let h = 0; for (const c of texts[key] || '') h = (h * 31 + c.charCodeAt(0)) | 0; return (h >>> 0).toString(36); };
 
   // ---- browser TTS fallback: rank voices so natural-sounding ones win ----
   const NOVELTY = /albert|bad news|bahh|bells|boing|bubbles|cellos|wobble|fred|good news|jester|junior|kathy|organ|superstar|ralph|trinoids|whisper|zarvox|eddy|flo|grandma|grandpa|reed|rocko|sandy|shelley/i;
@@ -64,7 +67,7 @@ const Voice = (() => {
   async function load(key) {
     if (buffers[key]) return buffers[key];
     const ac = ensureAudio();
-    const res = await fetch('audio/' + fileId(key) + '.m4a');
+    const res = await fetch('audio/' + fileId(key) + '.m4a?v=' + version(key));
     if (!res.ok) throw new Error('missing clip ' + key);
     return (buffers[key] = await ac.decodeAudioData(await res.arrayBuffer()));
   }
