@@ -98,10 +98,14 @@ const Voice = (() => {
     });
   }
 
+  // A beat of silence between pieces, so "A!" … /a/ … "Apple!" never run together.
+  const GAP_MS = 650;
+  const pause = ms => new Promise(r => setTimeout(r, ms));
   async function seq(keys, onend) {
     stop();
     const my = token;
-    for (const key of keys) {
+    for (const [i, key] of keys.entries()) {
+      if (i > 0) await pause(GAP_MS);
       if (my !== token) return;
       try {
         if (hasClip(key)) await playClip(key, my);

@@ -105,8 +105,11 @@ function startQuiz(o) {
       } else {
         b.classList.add('wrong'); box.children[q.options.indexOf(q.answer)].classList.add('right');
         $('qFeedback').textContent = q.revealText;
-        SFX.wrong(); Voice.seq(q.reveal);
-        setTimeout(() => endQuiz(o, false), 2600);
+        // keep the right answer on screen until it has been said, then drive on
+        let resumed = false;
+        const resume = () => { if (!resumed) { resumed = true; setTimeout(() => endQuiz(o, false), 500); } };
+        SFX.wrong(); Voice.seq(q.reveal, resume);
+        setTimeout(resume, 9000); // in case the audio can't play
       }
     };
     box.appendChild(b);
