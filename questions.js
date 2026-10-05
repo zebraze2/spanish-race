@@ -66,12 +66,13 @@ function enQuestions(lvl) {
   const up = s => (lv.upper ? s.toUpperCase() : s);
   return shuffle([...lv.items]).map(it => {
     const base = { text: true, tile: up, aria: o => o };
-    if (lv.type === 'spell') {
-      const sp = E.spell[it];
+    if (lv.type === 'spell' || lv.type === 'bits') {
+      const sp = E.spell[it], word = lv.type === 'spell', out = soundOut(it);
+      const ask = word ? ['e_spell_' + it, ...(out.length ? [...out, 'e_word_' + it] : [])] : ['e_bitsq', ...out];
       return { ...base, answer: it, options: shuffle([it, ...(lv.tricky ? sp.alt : shuffle(sp.alt)).slice(0, n - 1)]),
-        prompt: `<span class="q-pic">${sp.pic || '🔊'}</span> Which one spells it?`,
-        ask: ['e_spell_' + it], replay: ['e_spell_' + it],
-        reveal: ['en_oops', 'e_lspell_' + it], revealText: `This one spells “${it}” 👉` };
+        prompt: word ? `<span class="q-pic">${sp.pic || '🔊'}</span> Which one spells it?` : '<span class="q-pic">👂</span> Which one makes these sounds?',
+        ask, replay: word ? ask : out,
+        reveal: ['en_oops', ...spellLesson(it, word)], revealText: `This one ${word ? 'spells' : 'is'} “${it}” 👉` };
     }
     const first = lv.type === 'first', last = lv.type === 'last';
     const letter = first ? it[0] : last ? it[it.length - 1] : it;
@@ -80,17 +81,23 @@ function enQuestions(lvl) {
     const options = shuffle([letter, ...pickLetters(letter, pool, (byShape ? E.shapeTwins : E.soundTwins)[letter],
       n - 1, lv.tricky, byShape ? '' : E.sameSound[letter] || '')]);
     const q = { ...base, answer: letter, options, reveal: ['en_oops', ...letterLesson(letter)], revealText: `This one is ${up(letter)} 👉` };
-    if (byShape) return { ...q, prompt: '<span class="q-pic">🔊</span> Which letter?', ask: ['e_name_' + letter], replay: ['e_name_' + letter] };
+    if (byShape) return { ...q, prompt: '<span class="q-pic">🔊</span> Which letter?', ask: ['e_whichletter', 'e_nm_' + letter], replay: ['e_nm_' + letter] };
     if (lv.type === 'sound') return { ...q, prompt: '<span class="q-pic">👂</span> Which letter makes this sound?', ask: ['e_soundq', 'ph_' + letter], replay: ['ph_' + letter] };
-    const ask = first ? ['e_firstq_' + it, ...(E.soundSkip.includes(letter) ? [] : ['ph_' + letter, 'ph_' + letter]), 'e_word_' + it] : ['e_last_' + it];
+    // first sounds: "What does bear start with?" /b/ /b/ "Bear!" · last sounds: "What does drum end with?" "Drum!" /m/ /m/
+    const ph = sound(letter), ask = first ? [`e_firstq_${it}`, ...ph, ...ph, `e_word_${it}`] : [`e_lastq_${it}`, `e_word_${it}`, ...ph, ...ph];
     return { ...q, prompt: `<span class="q-pic">${E.pics[it]}</span> ${first ? 'starts' : 'ends'} with…?`,
-      ask, replay: ask, reveal: ['en_oops', (first ? 'e_lfirst_' : 'e_llast_') + it] };
+      ask, replay: ask, reveal: ['en_oops', `e_${lv.type}is_${it}`, 'e_nm_' + letter, ...ph] };
   });
 }
 
-// "C… /k/… cat!": the letter's name, its recorded sound, then its picture word
-// (the sound is left out for the soundSkip letters, as in ABC Blast).
-const letterLesson = l => ['e_nm_' + l, ...(ENGLISH.soundSkip.includes(l) ? [] : ['ph_' + l]), 'e_word_' + ENGLISH.letters[l].word];
+// A letter's recorded sound, or nothing for the letters whose recordings ABC Blast skips.
+const sound = l => (ENGLISH.soundSkip.includes(l) ? [] : ['ph_' + l]);
+// Sound a word out with the recordings (only if every letter has a usable recording).
+const soundOut = w => ([...w].every(c => sound(c).length) ? [...w].map(c => 'ph_' + c) : []);
+// "A!… /a/… Apple!": the letter's name, its recorded sound, then its picture word.
+const letterLesson = l => ['e_nm_' + l, ...sound(l), 'e_word_' + ENGLISH.letters[l].word];
+// "C! A! T!… /k/ /a/ /t/… Cat!"
+const spellLesson = (w, word) => [...[...w].map(c => 'e_nm_' + c), ...soundOut(w), ...(word ? ['e_word_' + w] : [])];
 
 /* Practice cards shown before the race: tap to hear. */
 function learnCards(mode, lvl) {
@@ -103,10 +110,11 @@ function learnCards(mode, lvl) {
       const L = E.letters[it];
       return { big: up(it), letter: true, title: '', sub: `${L.pic} ${L.word}`, clips: letterLesson(it) };
     }
-    if (lv.type === 'first') return { big: E.pics[it], title: it, sub: `starts with ${it[0]}`, clips: ['e_lfirst_' + it] };
-    if (lv.type === 'last') return { big: E.pics[it], title: it, sub: `ends with ${it[it.length - 1]}`, clips: ['e_llast_' + it] };
-    const sp = E.spell[it];
-    return sp.pic ? { big: sp.pic, title: it, sub: '', clips: ['e_lspell_' + it] }
-      : { big: it, letter: true, title: '', sub: '', clips: ['e_lspell_' + it] };
+    if (lv.type === 'first' || lv.type === 'last') {
+      const l = lv.type === 'first' ? it[0] : it[it.length - 1];
+      return { big: E.pics[it], title: it, sub: `${lv.type === 'first' ? 'starts' : 'ends'} with ${l}`, clips: [`e_${lv.type}is_${it}`, 'e_nm_' + l, ...sound(l)] };
+    }
+    const sp = E.spell[it], clips = spellLesson(it, lv.type === 'spell');
+    return sp.pic ? { big: sp.pic, title: it, sub: '', clips } : { big: it, letter: true, title: '', sub: '', clips };
   });
 }
