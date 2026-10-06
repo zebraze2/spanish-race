@@ -210,6 +210,13 @@ button { font-family: inherit; cursor: pointer; color: inherit; border: none; }
 #rwButtons { margin-top: 12px; }
 
 /* ---------- car shop ---------- */
+.sheets { display: flex; gap: 14px; margin: 2px 0 16px; }
+.sheet-tab {
+  position: relative; font-size: 32px; width: 76px; height: 60px; border-radius: 18px;
+  background: var(--cream); border: 3px solid var(--ink); box-shadow: 0 5px 0 var(--ink);
+}
+.sheet-tab.on { background: #fff1a8; transform: translateY(-4px); box-shadow: 0 9px 0 var(--ink); }
+.sheet-tab .tab-lock { position: absolute; right: -10px; top: -12px; font-size: 20px; }
 .cars { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 18px; width: 100%; max-width: 900px; padding-bottom: 28px; }
 .car {
   background: var(--cream); border: 3px solid var(--ink); border-radius: 22px; box-shadow: var(--chunky);

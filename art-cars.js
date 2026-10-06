@@ -110,6 +110,7 @@ function drawCar(spec, x, gy, o = {}) {
   if (spec.spare) drawWheel(spec.spare[0], spec.spare[1], 15, 0, false, true);
   if (spec.spikes) for (let sx = -28; sx <= 18; sx += 12) P([sx, -86, sx + 6, -100, sx + 12, -86], C.a);
   for (const [c, pts] of spec.parts) P(pts, C[c] || c);
+  if (spec.extra) spec.extra(o, C); // special bits: sirens, ladders, fins… (art-cars2.js)
   if (!CAR_SIL) {
     if (spec.helmet) { const [hx, hy] = spec.helmet; ngon(hx, hy, 9, 8, 0, '#ffffff'); poly([hx, hy - 3, hx + 9, hy - 3, hx + 9, hy + 3, hx, hy + 3], '#3a2a22'); }
     if (spec.robot) { poly([4, -62, 4, -80, 22, -80, 22, -62], '#c9d1db'); ngon(9, -71, 2.6, 6, 0, '#27e0ff'); ngon(17, -71, 2.6, 6, 0, '#27e0ff'); }

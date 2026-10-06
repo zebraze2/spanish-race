@@ -32,8 +32,9 @@ const OBSTACLE_TRACK = ['banana', 'puddle', 'cone', 'log', 'fire', 'spikes', 'pi
 const levelList = mode => (mode === 'es' ? VOCAB.levels : ENGLISH.levels);
 const levelCount = mode => levelList(mode).length;
 const levelName = (mode, lvl) => levelList(mode)[lvl - 1].name;
-// One kind of obstacle per level, wilder each level (English: each kind lasts two levels).
-const levelObstacle = (mode, lvl) => (mode === 'es' ? VOCAB.levels[lvl - 1].obstacle : OBSTACLE_TRACK[Math.floor((lvl - 1) / 2)]);
+// One kind of obstacle per level, wilder each level (English spreads the 10 kinds over its levels).
+const levelObstacle = (mode, lvl) => (mode === 'es' ? VOCAB.levels[lvl - 1].obstacle
+  : OBSTACLE_TRACK[Math.floor((lvl - 1) * OBSTACLE_TRACK.length / ENGLISH.levels.length)]);
 // Robot's finish time vs. a perfect run: easy at level 1, tight at the top level.
 const cpuMargin = (mode, lvl) => 1.6 - 0.48 * (lvl - 1) / (levelCount(mode) - 1);
 
@@ -62,7 +63,7 @@ function pickLetters(answer, pool, twins, n, tricky, same = '') {
 }
 
 function enQuestions(lvl) {
-  const E = ENGLISH, lv = E.levels[lvl - 1], n = E.choices[lvl - 1];
+  const E = ENGLISH, lv = E.levels[lvl - 1], n = lv.n;
   const up = s => (lv.upper ? s.toUpperCase() : s);
   return shuffle([...lv.items]).map(it => {
     const base = { text: true, tile: up, aria: o => o };

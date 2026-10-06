@@ -10,6 +10,11 @@ const SAVE = (() => {
     const saved = JSON.parse(localStorage.getItem('cdp-save') || '{}');
     if (saved.stars && !saved.stars.es) saved.stars = { es: saved.stars, en: {} }; // older saves were Spanish-only
     s = { ...s, ...saved, stars: { ...s.stars, ...(saved.stars || {}) } };
+    if (s.enLayout !== 2) { // four first-sound levels were added at 15: old English 15-20 are now 19-24
+      const moved = {};
+      for (const [k, v] of Object.entries(s.stars.en)) moved[+k >= 15 ? +k + 4 : +k] = v;
+      s.stars.en = moved; s.enLayout = 2;
+    }
     if (q.get('unlock') === 'all') s.unlockAll = true;
   } catch {}
   return s;
@@ -188,14 +193,26 @@ $('rwAgain').onclick = () => { SFX.click(); openLearn(current.lang, current.lvl)
 $('rwHome').onclick = () => { SFX.click(); renderMenu(); };
 
 /* ---------- car shop ---------- */
-let shopReturn = 'home';
+let shopReturn = 'home', shopSheet = 0;
+const SHEET_SIZE = 8, SHEET_ICONS = ['🚗', '🚒', '🦖']; // shop pages: starter cars, hero trucks, epic cars
 function openShop(from) {
-  if (from) shopReturn = from;
   const t = MODE_INFO[SAVE.lang].t, nextBuy = nextCarIdx();
+  if (from) { shopReturn = from; shopSheet = Math.floor((nextBuy >= 0 ? nextBuy : SAVE.car) / SHEET_SIZE); }
   $('shopTitle').textContent = t.shop;
   updateBank(); show('shop');
+  const tabs = $('sheets'); tabs.innerHTML = '';
+  SHEET_ICONS.forEach((icon, k) => {
+    const tab = document.createElement('button');
+    tab.className = 'sheet-tab' + (k === shopSheet ? ' on' : '');
+    const reached = nextBuy < 0 || nextBuy >= k * SHEET_SIZE;
+    tab.innerHTML = icon + (reached ? '' : '<span class="tab-lock">🔒</span>');
+    tab.setAttribute('aria-label', `Page ${k + 1}`);
+    tab.onclick = () => { SFX.click(); shopSheet = k; openShop(); };
+    tabs.appendChild(tab);
+  });
   const wrap = $('cars'); wrap.innerHTML = '';
   CARS.forEach((car, i) => {
+    if (Math.floor(i / SHEET_SIZE) !== shopSheet) return;
     const owned = SAVE.owned.includes(i), isNext = i === nextBuy, locked = !owned && !isNext;
     const card = document.createElement('button');
     card.className = 'car' + (SAVE.car === i ? ' selected' : '') + (locked ? ' locked' : '') + (isNext ? ' is-next' : '');
@@ -224,7 +241,7 @@ function buyCar(i) {
   SAVE.coins -= CARS[i].price; SAVE.owned.push(i); SAVE.car = i; persist();
   SFX.unlock(); confetti(); Voice.say(MODE_INFO[SAVE.lang].clip.newcar);
   openShop();
-  $('cars').children[i].classList.add('pop');
+  $('cars').children[i % SHEET_SIZE].classList.add('pop');
 }
 document.querySelectorAll('.shop-btn').forEach(b => {
   b.onclick = () => { ensureAudio(); SFX.click(); Voice.say(MODE_INFO[SAVE.lang].clip.shop); openShop(b.dataset.from); };
