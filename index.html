@@ -6,7 +6,7 @@
 <title>Carrera de Palabras</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Andika:wght@400;700&family=Baloo+2:wght@600;800&family=Lilita+One&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=d219baf3">
+<link rel="stylesheet" href="style.css?v=b2ff3db8">
 </head>
 <body>
 
@@ -114,17 +114,53 @@
   <div class="cars" id="cars"></div>
 </section>
 
-<script src="words.js?v=d219baf3"></script>
-<script src="english.js?v=d219baf3"></script>
-<script src="clips.js?v=d219baf3"></script>
-<script src="audio.js?v=d219baf3"></script>
-<script src="questions.js?v=d219baf3"></script>
-<script src="art-scene.js?v=d219baf3"></script>
-<script src="art-cars.js?v=d219baf3"></script>
-<script src="art-cars2.js?v=d219baf3"></script>
-<script src="art-obstacles.js?v=d219baf3"></script>
-<script src="art-gators.js?v=d219baf3"></script>
-<script src="race.js?v=d219baf3"></script>
-<script src="screens.js?v=d219baf3"></script>
+<section id="pick" class="screen calm hidden">
+  <button class="round-btn back" id="pickBack" aria-label="Back">⬅️</button>
+  <h2 class="chunky-text pick-title" id="pickTitle"></h2>
+  <div class="picks" id="picks"></div>
+  <div class="picks emojis hidden" id="emojiPick"></div>
+</section>
+
+<section id="checkup" class="screen calm hidden">
+  <div class="topbar">
+    <button class="round-btn" id="ckBack" aria-label="Back">⬅️</button>
+    <div class="ck-dots" id="ckDots"></div>
+    <div class="bank"><span class="coin"></span><span class="bank-count">0</span></div>
+  </div>
+  <div class="ck-intro" id="ckIntro">
+    <div class="ck-trophy">🏆</div>
+    <h1 class="chunky-text" id="ckTitle"></h1>
+    <p class="ck-sub" id="ckSub"></p>
+    <button class="big-btn primary" id="ckStart">▶️ ¡Empezar!</button>
+  </div>
+  <div class="bubble ck-ask hidden" id="ckAsk">
+    <div class="q-line"><span id="ckPrompt"></span><button class="round-btn q-say" id="ckSay" aria-label="Hear it again">🔊</button></div>
+    <div class="choices" id="ckChoices"></div>
+    <div class="q-feedback" id="ckFeedback"></div>
+  </div>
+  <div class="ck-done hidden" id="ckDone">
+    <div class="ck-trophy">🏆</div>
+    <h1 class="chunky-text" id="ckScore"></h1>
+    <div class="ck-row hidden" id="ckMissedRow"><span class="ck-label">🔁</span><span class="ck-pics" id="ckMissed"></span></div>
+    <div class="ck-row"><span class="ck-label">✨</span><span class="ck-pics" id="ckNew"></span></div>
+    <button class="big-btn primary" id="ckNext">➡️ Siguiente</button>
+    <p class="ck-parent" id="ckParent"></p>
+  </div>
+</section>
+
+<script src="words.js?v=b2ff3db8"></script>
+<script src="english.js?v=b2ff3db8"></script>
+<script src="clips.js?v=b2ff3db8"></script>
+<script src="audio.js?v=b2ff3db8"></script>
+<script src="questions.js?v=b2ff3db8"></script>
+<script src="adaptive.js?v=b2ff3db8"></script>
+<script src="art-scene.js?v=b2ff3db8"></script>
+<script src="art-cars.js?v=b2ff3db8"></script>
+<script src="art-cars2.js?v=b2ff3db8"></script>
+<script src="art-obstacles.js?v=b2ff3db8"></script>
+<script src="art-gators.js?v=b2ff3db8"></script>
+<script src="art-obstacles2.js?v=b2ff3db8"></script>
+<script src="race.js?v=b2ff3db8"></script>
+<script src="screens.js?v=b2ff3db8"></script>
 </body>
 </html>

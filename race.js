@@ -10,11 +10,11 @@ const BRIDGES = ['drawbridge', 'gatorbridge']; // crossed on a bridge instead of
 let G = null, raf = 0, lastT = 0;
 
 /* One obstacle per question; a gas station after every other obstacle. */
-function buildTrack(lang, lvl) {
-  const qs = makeQuestions(lang, lvl), kind = levelObstacle(lang, lvl), w = KINDS[kind].w, obs = [], stations = [];
+function buildTrack(lang, lvl, pick) {
+  const qs = makeQuestions(lang, lvl), kind = pick ? pick.kind : levelObstacle(lang, lvl), w = KINDS[kind].w, obs = [], stations = [];
   let x = 520;
   qs.forEach((q, i) => {
-    obs.push({ x: x + w / 2, w, kind, q, state: 'ready', asked: false, bridge: 1, chompT: 0 });
+    obs.push({ x: x + w / 2, w, kind, q, state: 'ready', asked: false, bridge: 1, chompT: 0, emoji: pick && pick.emoji });
     x += w;
     if (i % 2 === 0 && i < qs.length - 1) { stations.push({ x: x + 300 }); x += 600; }
     else x += 420;
@@ -23,8 +23,10 @@ function buildTrack(lang, lvl) {
 }
 
 // lang: 'es' (Spanish words) or 'en' (English letters & spelling)
-function startRace(lang, lvl) {
-  const T = buildTrack(lang, lvl);
+// pick: the obstacle he chose for a generated Spanish level ({ kind, emoji })
+function startRace(lang, lvl, pick) {
+  if (pick && esLevel(lvl)) { esLevel(lvl).pick = pick.kind; persist(); }
+  const T = buildTrack(lang, lvl, pick);
   const boostGain = (BOOST_MULT - 1) * BASE_SPEED * BOOST_TIME;
   const tBest = (T.len - T.obs.length * boostGain) / BASE_SPEED + T.stations.length * (0.8 + 2.2 * GAS_PER_LEG);
   const lastSt = T.stations[T.stations.length - 1];
@@ -35,7 +37,7 @@ function startRace(lang, lvl) {
     cpuSpeed: T.len / (tBest * cpuMargin(lang, lvl)),
     carIdx: SAVE.car || 0,
     p: { x: 0, h: 0, vy: 0, g: 1500, v: 0, boostT: 0, backT: 0, slowT: 0, spinT: 0, spinDur: 1,
-         flatT: 0, sootT: 0, mudT: 0, wheel: 0, gas: 1, out: false, outT: 0 },
+         flatT: 0, sootT: 0, mudT: 0, slimeT: 0, stuckT: 0, floatT: 0, floatDur: 1, wheel: 0, gas: 1, out: false, outT: 0 },
     cpu: { x: 0, wheel: 0 },
     cam: 0, mode: 'countdown', t: 0, correct: 0, asked: 0, parts: [], floaters: [], fill: null, glugT: 0, dustT: 0,
   };
@@ -97,6 +99,7 @@ function startQuiz(o) {
     b.textContent = label; b.setAttribute('aria-label', q.aria(opt));
     b.onclick = () => {
       if (answered) return; answered = true;
+      if (G.lang === 'es') noteAnswer(q.answer, opt === q.answer); // what he knows feeds the adaptive levels
       if (opt === q.answer) {
         b.classList.add('right'); [...box.children].forEach(c => c !== b && c.classList.add('faded'));
         $('qFeedback').textContent = G.info.t.right;
@@ -166,6 +169,21 @@ function failHit(o) {
     case 'gatorbridge':
       o.state = 'passed'; o.leap = { t: 0, x: p.x + 40, hit: true };
       p.backT = 0.6; p.slowT = 1.2; SFX.roar(); setTimeout(() => SFX.chomp(), 300); say('🐊 ¡ÑAM!', '#2f9e44'); break;
+    default: { // the newer kinds describe their crash in KINDS (art-obstacles2.js)
+      const K = KINDS[o.kind];
+      o.state = K.after || 'hit';
+      say(K.ouch || 'Bonk!', K.ouchColor || '#e8453c');
+      if (K.chips) burst('chip', o.x, YOU_GY - 24, 12, K.chips, { vx: 300, up: 280 });
+      if (K.sfx) SFX[K.sfx]();
+      if (K.fail === 'spin') { p.spinDur = p.spinT = 0.9; p.slowT = 0.9; SFX.slip(); }
+      else if (K.fail === 'slow') { p.slimeT = 2.5; p.slowT = 1.4; SFX.splash(); }
+      else if (K.fail === 'flat') { p.flatT = 2.2; SFX.pop(); }
+      else if (K.fail === 'chomp') { o.state = 'planked'; o.chompT = 0.001; p.backT = 0.5; p.slowT = 1.3; SFX.chomp(); }
+      else if (K.fail === 'stuck') { p.stuckT = 1.1; p.slowT = 0.8; SFX.creak(); }
+      else if (K.fail === 'float') { p.floatT = p.floatDur = 1.3; p.slowT = 0.6; SFX.whoosh(); setTimeout(() => SFX.pop(), 1200); }
+      else if (K.fail === 'fly') { o.fly = { x: 0, y: 0, vx: 300, vy: -420, rot: 0 }; p.backT = 0.35; p.slowT = 0.8; SFX.bonk(); }
+      else { p.backT = 0.5; p.slowT = 0.9; SFX.bonk(); }
+    }
   }
 }
 
@@ -179,8 +197,8 @@ function updateObstacle(o, dt) {
   }
   if (o.leap && (o.leap.t += dt) > 1.5) o.leap = null;
   // near misses: the gator snaps (or the volcano spits fire) as you fly past
-  if ((o.kind === 'pit' || o.kind === 'volcano') && o.state === 'cleared' && !o.snapped && Math.abs(p.x - o.x) < 50) {
-    o.snapped = true; o.chompT = 0.001; if (o.kind === 'pit') SFX.chomp(); else SFX.sizzle();
+  if ((o.kind === 'pit' || o.kind === 'volcano' || o.kind === 'shark') && o.state === 'cleared' && !o.snapped && Math.abs(p.x - o.x) < 50) {
+    o.snapped = true; o.chompT = 0.001; if (o.kind === 'volcano') SFX.sizzle(); else SFX.chomp();
   }
   if (o.kind === 'gatorbridge' && o.state === 'cleared' && !o.leapt && p.x > o.x - 10) { o.leapt = true; o.leap = { t: 0, x: p.x - 110, hit: false }; SFX.roar(); }
 }
@@ -236,11 +254,13 @@ function update(dt) {
     if (p.out) v = Math.max(0, p.v - 120 * dt);
     else if (p.backT > 0) { p.backT -= dt; v = -150; }
     else if (p.spinT > 0) { p.spinT -= dt; v = 30; }
+    else if (p.stuckT > 0) { p.stuckT -= dt; v = 0; }
+    else if (p.floatT > 0) { p.floatT -= dt; v = 30; }
     else if (p.boostT > 0) { p.boostT -= dt; v = BASE_SPEED * BOOST_MULT; }
     else if (p.slowT > 0) { p.slowT -= dt; v = SLOW_SPEED; }
     else v = BASE_SPEED;
     if (p.flatT > 0) { p.flatT -= dt; v = Math.min(v, SLOW_SPEED); }
-    for (const k of ['sootT', 'mudT']) if (p[k] > 0) p[k] -= dt;
+    for (const k of ['sootT', 'mudT', 'slimeT']) if (p[k] > 0) p[k] -= dt;
     const stop = G.stations.find(s => s.want && !s.done && !s.filling);
     if (stop && !p.out) v = Math.min(v, 30 + (stop.x - p.x) * 1.6); // ease in to the pump
     p.v = v;

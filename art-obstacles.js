@@ -129,6 +129,7 @@ function drawObstacleGround(o, sx, G) { // flat things under the cars
   else if (o.kind === 'pit' || o.kind === 'drawbridge') drawPit(sx, YOU_GY, o, G.t);
   else if (o.kind === 'gatorbridge') drawRiver(sx, o, G.t);
   else if (o.kind === 'volcano') drawLava(sx, YOU_GY, o, G.t);
+  else if (KINDS[o.kind].ground) KINDS[o.kind].ground(sx, YOU_GY, o, G.t);
 }
 function drawObstacleUpright(o, sx, G) { // standing things on your lane
   if (sx < -300 || sx > VIEW.w + 300) return;
@@ -138,21 +139,23 @@ function drawObstacleUpright(o, sx, G) { // standing things on your lane
   else if (o.kind === 'fire') drawFire(sx, YOU_GY, o, G.t);
   else if (o.kind === 'spikes') drawSpikes(sx, YOU_GY, o);
   else if (o.kind === 'drawbridge') drawDrawbridge(sx, YOU_GY, o);
+  else if (KINDS[o.kind].draw) KINDS[o.kind].draw(sx, YOU_GY, o, G.t);
 }
 function drawObstacleFront(o, sx, G) { // gators lunging out, in front of your car
   if (sx < -420 || sx > VIEW.w + 420) return;
   if (o.kind === 'pit' || o.kind === 'drawbridge') drawPitChomp(sx, YOU_GY, o);
   else if (o.kind === 'gatorbridge') drawRiverGators(sx, o, G.t);
   else if (o.kind === 'volcano') drawFireball(sx, YOU_GY, o);
+  else if (KINDS[o.kind].front) KINDS[o.kind].front(sx, YOU_GY, o, G.t);
 }
 
 /* Level-card preview: the obstacle on a little strip of road. */
-function renderObstacleThumb(canvas, kind) {
+function renderObstacleThumb(canvas, kind, emoji) {
   withCtx(canvas, (w, h) => {
     const s = Math.min(w / 170, h / 90);
     ctx.save(); ctx.translate(w / 2, h * 0.8); ctx.scale(s, s);
     poly([-110, -16, 110, -16, 110, 16, -110, 16], PAL.road);
-    const o = { kind, w: KINDS[kind].w, state: 'ready', bridge: 1, chompT: 0.25 };
+    const o = { kind, w: KINDS[kind].w, state: 'ready', bridge: 1, chompT: 0.25, emoji };
     if (kind === 'banana') drawBanana(0, 4, o);
     else if (kind === 'puddle') drawPuddle(0, 4, o, 0);
     else if (kind === 'cone') drawCone(0, 4, o);
@@ -163,6 +166,11 @@ function renderObstacleThumb(canvas, kind) {
     else if (kind === 'drawbridge') { blob(10, -2, 60, 14, 9, 0.08, '#4a3222'); drawDrawbridge(-50, 4, { w: 110, bridge: 0.75 }); }
     else if (kind === 'gatorbridge') { poly([-110, -16, 110, -16, 110, 16, -110, 16], '#5fbfd0'); gatorHead(40, -8, 0.95, 1, -1); }
     else if (kind === 'volcano') { drawLava(0, 20, { w: 120 }, 0.3); drawFireball(10, 20, { chompT: 0.12 }); }
+    else { // newer kinds: shrink the tall ones to fit the card
+      const K = KINDS[kind], k = 70 / Math.max(70, K.tall || 70);
+      o.chompT = 0; ctx.translate(0, 4); ctx.scale(k, k);
+      (K.ground || K.draw)(0, 0, o, 0.4);
+    }
     ctx.restore();
   });
 }

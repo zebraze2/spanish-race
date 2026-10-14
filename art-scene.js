@@ -268,11 +268,21 @@ function drawPlayer(G, cam) {
   const p = G.p, x = p.x - cam;
   let angle = 0, h = p.h;
   if (p.spinT > 0) { const k = 1 - p.spinT / p.spinDur; angle = -k * Math.PI * 2; h += Math.sin(k * Math.PI) * 50; }
+  else if (p.floatT > 0) { const k = 1 - p.floatT / p.floatDur; h += Math.sin(k * Math.PI) * 80; angle = Math.sin(G.t * 6) * 0.15; }
   else if (h > 0) angle = Math.max(-0.28, Math.min(0.28, -p.vy / 2600));
   else if (p.flatT > 0) angle = Math.sin(G.t * 28) * 0.035;
   else if (p.backT > 0) angle = Math.sin(G.t * 40) * 0.05;
   drawCar(CARS[G.carIdx], x, YOU_GY, { h, angle, wheel: p.wheel, boost: p.boostT > 0, flat: p.flatT > 0,
-    soot: p.sootT > 0 ? 'rgba(38,30,30,.55)' : p.mudT > 0 ? 'rgba(110,72,36,.5)' : null, t: G.t });
+    soot: p.sootT > 0 ? 'rgba(38,30,30,.55)' : p.mudT > 0 ? 'rgba(110,72,36,.5)' : p.slimeT > 0 ? 'rgba(70,200,60,.45)' : null, t: G.t });
+  if (p.floatT > 0) { // floating away in a bubble
+    ctx.globalAlpha = 0.3; ngon(x, YOU_GY - h - 46, 82, 18, 0, '#9fe3ff'); ctx.globalAlpha = 1;
+    ctx.strokeStyle = 'rgba(255,255,255,.9)'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(x, YOU_GY - h - 46, 82, 0, Math.PI * 2); ctx.stroke();
+  }
+  if (p.stuckT > 0) { // stuck in the web
+    ctx.strokeStyle = 'rgba(255,255,255,.9)'; ctx.lineWidth = 2; ctx.beginPath();
+    for (let i = 0; i < 6; i++) { ctx.moveTo(x - 70 + i * 28, YOU_GY - 96); ctx.lineTo(x - 56 + i * 22, YOU_GY - 4); }
+    ctx.moveTo(x - 76, YOU_GY - 60); ctx.lineTo(x + 78, YOU_GY - 50); ctx.moveTo(x - 72, YOU_GY - 30); ctx.lineTo(x + 76, YOU_GY - 24); ctx.stroke();
+  }
   if (p.slowT > 0 && p.spinT <= 0) drawDizzy(x, YOU_GY - h - 118, G.t);
 }
 

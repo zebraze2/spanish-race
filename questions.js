@@ -31,24 +31,38 @@ const OBSTACLE_TRACK = ['banana', 'puddle', 'cone', 'log', 'fire', 'spikes', 'pi
 
 const levelList = mode => (mode === 'es' ? VOCAB.levels : ENGLISH.levels);
 const levelCount = mode => levelList(mode).length;
-const levelName = (mode, lvl) => levelList(mode)[lvl - 1].name;
+// Spanish levels past the hand-made ones are generated (adaptive.js); their name is the new words' pictures.
+const levelName = (mode, lvl) => (mode === 'es' && lvl > ES_FIXED
+  ? (esLevel(lvl).fresh.map(id => VOCAB.words[id].pic).join('') || '🔁')
+  : levelList(mode)[lvl - 1].name);
 // One kind of obstacle per level, wilder each level (English spreads the 10 kinds over its levels).
-const levelObstacle = (mode, lvl) => (mode === 'es' ? VOCAB.levels[lvl - 1].obstacle
+// Generated Spanish levels use whatever he picks before the race.
+const levelObstacle = (mode, lvl) => (mode === 'es' ? (lvl > ES_FIXED ? (esLevel(lvl).pick || 'banana') : VOCAB.levels[lvl - 1].obstacle)
   : OBSTACLE_TRACK[Math.floor((lvl - 1) * OBSTACLE_TRACK.length / ENGLISH.levels.length)]);
-// Robot's finish time vs. a perfect run: easy at level 1, tight at the top level.
-const cpuMargin = (mode, lvl) => 1.6 - 0.48 * (lvl - 1) / (levelCount(mode) - 1);
+// Robot's finish time vs. a perfect run: easy at level 1, tight at the top level (generated levels stay a bit gentler).
+const cpuMargin = (mode, lvl) => (mode === 'es' && lvl > ES_FIXED ? 1.2 : 1.6 - 0.48 * (lvl - 1) / (levelCount(mode) - 1));
 
 const makeQuestions = (mode, lvl) => (mode === 'es' ? esQuestions(lvl) : enQuestions(lvl));
 
 function esQuestions(lvl) {
-  const words = VOCAB.levels[lvl - 1].words, n = CHOICES_ES[lvl - 1], W = VOCAB.words;
-  return shuffle(words).map(id => ({
+  const words = lvl > ES_FIXED ? esLevel(lvl).words : VOCAB.levels[lvl - 1].words;
+  const n = lvl > ES_FIXED ? 4 : CHOICES_ES[lvl - 1];
+  return shuffle(words).map(id => esQuestion(id, words, n));
+}
+
+// "¿Cuál es el perro?" with n pictures; wrong pictures never include one that could also fit.
+const CONFUSE = new Map();
+for (const g of VOCAB.confuse) for (const id of g) CONFUSE.set(id, new Set([...(CONFUSE.get(id) || []), ...g]));
+function esQuestion(id, pool, n) {
+  const W = VOCAB.words, bad = CONFUSE.get(id) || new Set();
+  const others = shuffle(pool.filter(w => w !== id && !bad.has(w))).slice(0, n - 1);
+  return {
     answer: id, text: false, tile: o => W[o].pic, aria: o => W[o].en,
-    options: shuffle([id, ...shuffle(words.filter(w => w !== id)).slice(0, n - 1)]),
+    options: shuffle([id, ...others]),
     prompt: `¿Cuál es <span class="q-word">${W[id].es}</span>?`,
     ask: ['p_cual', 'w_' + id], replay: ['w_' + id],
     reveal: ['p_uy', 'w_' + id], revealText: `👉 ${W[id].es}`,
-  }));
+  };
 }
 
 /* Wrong letters: easy levels draw from the level's own letters; tricky levels lead
@@ -103,7 +117,11 @@ const spellLesson = (w, word) => [...[...w].map(c => 'e_nm_' + c), ...soundOut(w
 /* Practice cards shown before the race: tap to hear. */
 function learnCards(mode, lvl) {
   if (mode === 'es') {
-    return VOCAB.levels[lvl - 1].words.map(id => { const w = VOCAB.words[id]; return { big: w.pic, title: w.es, sub: w.en, clips: ['w_' + id] }; });
+    const gen = lvl > ES_FIXED ? esLevel(lvl) : null, words = gen ? gen.words : VOCAB.levels[lvl - 1].words;
+    return words.map(id => {
+      const w = VOCAB.words[id], tag = gen && gen.fresh.includes(id) ? 'new' : gen && gen.review.includes(id) ? 'again' : '';
+      return { big: w.pic, title: w.es, sub: w.en, clips: ['w_' + id], tag };
+    });
   }
   const E = ENGLISH, lv = E.levels[lvl - 1], up = s => (lv.upper ? s.toUpperCase() : s);
   return [...new Set(lv.items)].map(it => {

@@ -239,6 +239,39 @@ button { font-family: inherit; cursor: pointer; color: inherit; border: none; }
 .confetti { position: fixed; top: -60px; font-size: 34px; pointer-events: none; animation: fall linear forwards; z-index: 40; }
 @keyframes fall { to { transform: translateY(115vh) rotate(540deg); } }
 
+/* ---------- adaptive Spanish levels: quiz cards, obstacle picker, check-in quiz ---------- */
+.lvl.quiz { background: linear-gradient(#fff6c2 0 72%, #ffd23f 72% 78%, #f2a20a 78%); }
+.lvl .big-emoji { font-size: 50px; line-height: 70px; height: 70px; }
+.lvl.mystery .big-emoji { opacity: .45; }
+.word { position: relative; }
+.word .tag { position: absolute; top: 6px; right: 8px; font-size: 18px; background: #fff1a8; border: 2px solid var(--ink); border-radius: 999px; padding: 0 6px; }
+.pick-title { font-size: clamp(28px, 5vw, 46px); margin: 6px 0 16px; text-align: center; }
+.picks { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 14px; width: 100%; max-width: 900px; padding-bottom: 24px; }
+.pick {
+  background: var(--cream); border: 3px solid var(--ink); border-radius: 20px; box-shadow: var(--chunky);
+  display: flex; flex-direction: column; align-items: center; padding: 6px 6px 8px; transition: transform .1s;
+}
+.pick:active { transform: translateY(5px); box-shadow: 0 1px 0 var(--ink); }
+.pick canvas { width: 100%; height: 76px; }
+.pick .nm { font-family: 'Lilita One', sans-serif; font-size: 17px; }
+.pick.invent { background: #fff1a8; animation: nudge 1.2s ease-in-out infinite; }
+.pick.emoji { font-size: 58px; line-height: 1.2; padding: 10px 0; }
+.ck-dots { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; flex: 1; }
+.ck-dot { width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--ink); background: #fff; transition: transform .2s; }
+.ck-dot.now { background: var(--gold); transform: scale(1.35); }
+.ck-dot.ok { background: var(--green); }
+.ck-dot.miss { background: var(--red); }
+.ck-intro, .ck-done { display: flex; flex-direction: column; align-items: center; gap: 10px; margin-top: 24px; text-align: center; }
+.ck-intro h1, .ck-done h1 { font-size: clamp(40px, 8vw, 72px); margin: 0; }
+.ck-sub { font-size: 22px; font-weight: 800; margin: 0; }
+.ck-trophy { font-size: 110px; line-height: 1; animation: hop .9s ease-in-out infinite; }
+.ck-ask { margin-top: 30px; }
+.ck-ask::before, .ck-ask::after { display: none; }
+.ck-row { display: flex; align-items: center; gap: 12px; background: var(--cream); border: 3px solid var(--ink); border-radius: 22px; padding: 6px 16px; box-shadow: 0 4px 0 var(--ink); }
+.ck-label { font-size: 34px; }
+.ck-pics { font-size: 44px; letter-spacing: 6px; }
+.ck-parent { font-size: 14px; opacity: .7; max-width: 640px; margin-top: 18px; }
+
 @media (max-width: 600px) {
   .gas-bar { width: 56px; }
   .lvl-tag { display: none; }

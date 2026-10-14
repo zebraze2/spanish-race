@@ -2,7 +2,8 @@
    screen (stars, then coins flying into your coin box), and the car shop.
    Parent shortcuts: ?unlock=all opens every level for this visit, ?reset wipes progress. */
 const SAVE = (() => {
-  const blank = () => ({ stars: { es: {}, en: {} }, coins: 0, car: 0, owned: [0], lang: 'es' });
+  // vocab: what he knows per Spanish word · esPath: quizzes and generated levels after level 10
+  const blank = () => ({ stars: { es: {}, en: {} }, coins: 0, car: 0, owned: [0], lang: 'es', vocab: {}, esPath: [] });
   let s = blank();
   try {
     const q = new URLSearchParams(location.search);
@@ -23,9 +24,11 @@ function persist() {
   try { const { unlockAll, ...keep } = SAVE; localStorage.setItem('cdp-save', JSON.stringify(keep)); } catch {}
 }
 
-const SCREENS = ['home', 'menu', 'learn', 'race', 'reward', 'shop'];
+const SCREENS = ['home', 'menu', 'learn', 'race', 'reward', 'shop', 'pick', 'checkup'];
 function show(id) { for (const s of SCREENS) $(s).classList.toggle('hidden', s !== id); }
-const isUnlocked = (lang, lvl) => lvl === 1 || !!SAVE.unlockAll || SAVE.stars[lang][lvl - 1] === 3;
+// generated Spanish levels exist only once he has reached them
+const isUnlocked = (lang, lvl) => (lang === 'es' && lvl > ES_FIXED ? !!esLevel(lvl)
+  : lvl === 1 || !!SAVE.unlockAll || SAVE.stars[lang][lvl - 1] === 3);
 const starText = n => '⭐'.repeat(n) + '☆'.repeat(3 - n);
 const COIN = '<span class="coin"></span>';
 const nextCarIdx = () => CARS.findIndex((c, i) => !SAVE.owned.includes(i));
@@ -43,28 +46,49 @@ for (const lang of ['es', 'en']) {
 
 /* ---------- level map ---------- */
 const renderLevelThumb = (canvas, lang, lvl) => renderObstacleThumb(canvas, levelObstacle(lang, lvl));
+function mapNodes(lang) {
+  const nodes = Array.from({ length: levelCount(lang) }, (_, i) => ({ type: 'level', lvl: i + 1 }));
+  if (lang !== 'es') return nodes;
+  syncEsPath();
+  return [...nodes, ...SAVE.esPath, { type: 'mystery' }];
+}
 function renderMenu() {
-  const lang = SAVE.lang, t = MODE_INFO[lang].t, n = levelCount(lang);
+  const lang = SAVE.lang, t = MODE_INFO[lang].t;
   $('mapTitle').textContent = lang === 'es' ? '🇪🇸 Español' : '🔤 English';
   $('mapSub').textContent = t.subtitle;
   updateBank(); show('menu');
-  let frontier = 0;
-  for (let lvl = 1; lvl <= n && !frontier; lvl++) if (isUnlocked(lang, lvl) && (SAVE.stars[lang][lvl] || 0) < 3) frontier = lvl;
+  const nodes = mapNodes(lang);
+  const open = n => (n.type === 'quiz' ? true : n.type === 'level' && isUnlocked(lang, n.lvl));
+  const done = n => (n.type === 'quiz' ? n.done : n.type === 'level' && (SAVE.stars[lang][n.lvl] || 0) === 3);
+  const frontier = nodes.find(n => open(n) && !done(n));
   const wrap = $('levels'); wrap.innerHTML = '';
-  for (let lvl = 1; lvl <= n; lvl++) {
-    const open = isUnlocked(lang, lvl), stars = SAVE.stars[lang][lvl] || 0;
-    const b = document.createElement('button');
-    b.className = 'lvl' + (open ? '' : ' locked') + (lvl === frontier ? ' next' : '');
-    b.innerHTML = `<div class="num">${lvl}</div><canvas class="thumb"></canvas><div class="nm">${levelName(lang, lvl)}</div>
-      <div class="st">${open ? starText(stars) : '⭐⭐⭐'}</div>${open ? '' : '<div class="lock">🔒</div>'}`;
+  for (const n of nodes) {
+    const b = document.createElement('button'), isOpen = open(n);
+    b.className = 'lvl' + (n.type !== 'level' ? ' ' + n.type : '') + (isOpen ? '' : ' locked') + (n === frontier ? ' next' : '');
+    if (n.type === 'quiz') {
+      b.innerHTML = `<div class="num">🏆 ${n.q}</div><div class="big-emoji">🏆</div><div class="nm">Prueba</div>
+        <div class="st">${n.done ? `✔ ${n.score} / ${n.total}` : '¡Ahora!'}</div>`;
+      b.onclick = () => { ensureAudio(); SFX.click(); openCheckup(n); };
+    } else if (n.type === 'mystery') {
+      b.innerHTML = '<div class="num">?</div><div class="big-emoji">❓</div><div class="nm">…</div><div class="st">⭐⭐⭐</div><div class="lock">🔒</div>';
+      b.onclick = () => { SFX.bonk(); b.classList.remove('shake'); void b.offsetWidth; b.classList.add('shake'); Voice.say(MODE_INFO[lang].clip.need3); };
+    } else {
+      const lvl = n.lvl, stars = SAVE.stars[lang][lvl] || 0, gen = lang === 'es' && lvl > ES_FIXED;
+      b.innerHTML = `<div class="num">${lvl}</div><canvas class="thumb"></canvas><div class="nm">${isOpen || !gen ? levelName(lang, lvl) : '…'}</div>
+        <div class="st">${isOpen ? starText(stars) : '⭐⭐⭐'}</div>${isOpen ? '' : '<div class="lock">🔒</div>'}`;
+      b.onclick = () => {
+        ensureAudio();
+        if (isOpen) return openLearn(lang, lvl);
+        SFX.bonk(); b.classList.remove('shake'); void b.offsetWidth; b.classList.add('shake');
+        Voice.say(MODE_INFO[lang].clip.need3);
+      };
+    }
     wrap.appendChild(b);
-    renderLevelThumb(b.querySelector('canvas'), lang, lvl);
-    b.onclick = () => {
-      ensureAudio();
-      if (open) return openLearn(lang, lvl);
-      SFX.bonk(); b.classList.remove('shake'); void b.offsetWidth; b.classList.add('shake');
-      Voice.say(MODE_INFO[lang].clip.need3);
-    };
+    if (n.type === 'level') {
+      const canvas = b.querySelector('canvas');
+      if (lang === 'es' && n.lvl > ES_FIXED && !esLevel(n.lvl).pick) renderObstacleThumb(canvas, 'custom', '🎲'); // he picks the obstacle
+      else renderLevelThumb(canvas, lang, n.lvl);
+    }
   }
   const f = wrap.querySelector('.next'); if (f) f.scrollIntoView({ block: 'nearest' });
 }
@@ -82,7 +106,7 @@ function openLearn(lang, lvl) {
   cards.forEach(cd => {
     const c = document.createElement('button');
     c.className = 'word';
-    c.innerHTML = `<div class="pic${cd.letter ? ` letter len${Math.min(3, [...cd.big].length)}` : ''}">${cd.big}</div>`
+    c.innerHTML = (cd.tag ? `<div class="tag">${cd.tag === 'new' ? '✨' : '🔁'}</div>` : '') + `<div class="pic${cd.letter ? ` letter len${Math.min(3, [...cd.big].length)}` : ''}">${cd.big}</div>`
       + (cd.title ? `<div class="es${lang === 'en' ? ' abc' : ''}">${cd.title}</div>` : '')
       + (cd.sub ? `<div class="en">${cd.sub}</div>` : '') + '<div class="spk">🔊</div>';
     c.onclick = () => {
@@ -111,17 +135,26 @@ $('hearAll').onclick = () => {
   };
   next();
 };
-$('goRace').onclick = () => { ensureAudio(); Voice.stop(); startRace(current.lang, current.lvl); };
+$('goRace').onclick = () => {
+  ensureAudio(); Voice.stop();
+  if (current.lang === 'es' && current.lvl > ES_FIXED) openPicker(current.lvl); else startRace(current.lang, current.lvl);
+};
 $('raceHome').onclick = () => { stopRace(); renderMenu(); };
 
 /* ---------- reward: stars, then coins fly into the coin box ---------- */
+// Where "next" goes after a level, if he can go there now (Spanish nodes exist only once reached).
+function nextOpen(lang, lvl) {
+  if (lang === 'es' && lvl >= ES_FIXED) return esNextAfter(lvl);
+  return lvl < levelCount(lang) && isUnlocked(lang, lvl + 1) ? { type: 'level', lvl: lvl + 1 } : null;
+}
 function showReward(sum) {
   const { lang, lvl, result } = sum, info = MODE_INFO[lang], t = info.t;
   const won = result === 'win', missed = sum.asked - sum.correct;
   const stars = won ? (missed === 0 ? 3 : missed <= 2 ? 2 : 1) : 0;
-  const next = lvl + 1, hadNext = isUnlocked(lang, next);
+  const hadNext = !!nextOpen(lang, lvl);
   if (stars > (SAVE.stars[lang][lvl] || 0)) SAVE.stars[lang][lvl] = stars;
-  const unlockedNow = !hadNext && next <= levelCount(lang) && isUnlocked(lang, next);
+  const nx = nextOpen(lang, lvl), unlockedNow = !hadNext && !!nx;
+  const hasMore = lang === 'es' || lvl < levelCount(lang);
   const coins = 2 + stars * 2 + (unlockedNow ? 5 : 0); // 2 for trying, 2 per star, 5 bonus for a new level
   const startBank = SAVE.coins;
   SAVE.coins += coins; persist();
@@ -133,7 +166,7 @@ function showReward(sum) {
   $('rwEarned').innerHTML = `+${coins} ${COIN}`; $('rwEarned').classList.remove('show');
   $('rwBank').textContent = startBank;
   for (const id of ['rwNeed', 'rwUnlock', 'rwButtons']) $(id).classList.add('hidden');
-  $('rwUnlockNum').textContent = next;
+  $('rwUnlockNum').textContent = nx ? (nx.type === 'quiz' ? '🏆' : nx.lvl) : '';
   const starEls = [...$('rwStars').children];
   starEls.forEach(s => s.classList.remove('on'));
   show('reward');
@@ -145,14 +178,15 @@ function showReward(sum) {
   const T = 900;
   for (let i = 0; i < stars; i++) setTimeout(() => { starEls[i].classList.add('on'); SFX.coin(); }, T + i * 450);
   setTimeout(() => flyCoins(coins, startBank, () => {
-    if (unlockedNow) { $('rwUnlock').classList.remove('hidden'); SFX.unlock(); Voice.say(info.clip.unlocked); }
-    else if (won && stars < 3 && next <= levelCount(lang)) { $('rwNeed').classList.remove('hidden'); Voice.say(info.clip.need3); }
+    if (unlockedNow) { $('rwUnlock').classList.remove('hidden'); SFX.unlock(); Voice.say(nx.type === 'quiz' ? 'p_prueba' : info.clip.unlocked); }
+    else if (won && stars < 3 && hasMore) { $('rwNeed').classList.remove('hidden'); Voice.say(info.clip.need3); }
     // The big button is always the obvious next step: forward if you can, otherwise try again.
-    const canNext = next <= levelCount(lang) && isUnlocked(lang, next);
+    const canNext = !!nx;
     $('rwNext').classList.toggle('hidden', !canNext);
     $('rwAgain').className = canNext ? 'round-btn' : 'big-btn primary';
     $('rwAgain').innerHTML = canNext ? '🔁' : `🔁 ${t.again}`;
-    $('rwNextLabel').textContent = t.next;
+    $('rwNextLabel').textContent = nx && nx.type === 'quiz' ? '¡Prueba!' : t.next;
+    REWARD_NEXT = nx;
     $('rwButtons').classList.remove('hidden');
     updateBank();
   }), T + stars * 450 + 300);
@@ -188,7 +222,8 @@ function confetti() {
     document.body.appendChild(s); setTimeout(() => s.remove(), 5000);
   }
 }
-$('rwNext').onclick = () => { SFX.click(); openLearn(current.lang, current.lvl + 1); };
+let REWARD_NEXT = null;
+$('rwNext').onclick = () => { SFX.click(); if (REWARD_NEXT.type === 'quiz') openCheckup(REWARD_NEXT); else openLearn(current.lang, REWARD_NEXT.lvl); };
 $('rwAgain').onclick = () => { SFX.click(); openLearn(current.lang, current.lvl); };
 $('rwHome').onclick = () => { SFX.click(); renderMenu(); };
 
@@ -250,5 +285,105 @@ $('shopBack').onclick = () => {
   SFX.click();
   if (shopReturn === 'menu') renderMenu(); else if (shopReturn === 'reward') { updateBank(); show('reward'); } else renderHome();
 };
+
+/* ---------- pick the obstacle (generated Spanish levels) ---------- */
+function openPicker(lvl) {
+  $('pickTitle').textContent = '¿Qué obstáculo quieres?';
+  show('pick'); $('pick').scrollTop = 0;
+  const picks = $('picks'), emojis = $('emojiPick');
+  picks.innerHTML = ''; emojis.innerHTML = ''; picks.classList.remove('hidden'); emojis.classList.add('hidden');
+  const go = pick => { SFX.click(); Voice.stop(); startRace('es', lvl, pick); };
+  const tile = (wrap, kind, name, emoji, onTap) => {
+    const b = document.createElement('button');
+    b.className = 'pick' + (kind === 'custom' ? ' invent' : '');
+    b.innerHTML = `<canvas></canvas><div class="nm">${name}</div>`;
+    wrap.appendChild(b);
+    renderObstacleThumb(b.querySelector('canvas'), kind, emoji);
+    b.onclick = onTap;
+  };
+  for (const [kind, name] of OBSTACLE_PICKS) tile(picks, kind, name, null, () => go({ kind }));
+  tile(picks, 'custom', '¡Inventa!', '✨', () => { // invent your own: any picture becomes the obstacle
+    SFX.click(); Voice.say('p_inventa');
+    picks.classList.add('hidden'); emojis.classList.remove('hidden'); $('pickTitle').textContent = '¡Inventa tu obstáculo!';
+    for (const e of CUSTOM_EMOJI) {
+      const b = document.createElement('button');
+      b.className = 'pick emoji'; b.textContent = e;
+      b.onclick = () => go({ kind: 'custom', emoji: e });
+      emojis.appendChild(b);
+    }
+  });
+  Voice.say('p_elige');
+}
+$('pickBack').onclick = () => { SFX.click(); openLearn('es', current.lvl); };
+
+/* ---------- check-in quiz: what does he know, what does he keep missing? ---------- */
+let CK = null;
+function openCheckup(node) {
+  CK = { node, qs: makeCheckup(node), i: 0, right: 0, missed: [] };
+  show('checkup'); updateBank();
+  $('ckIntro').classList.remove('hidden'); $('ckAsk').classList.add('hidden'); $('ckDone').classList.add('hidden');
+  $('ckTitle').textContent = `¡Prueba ${node.q}!`;
+  $('ckSub').textContent = `${CK.qs.length} palabras`;
+  $('ckDots').innerHTML = CK.qs.map(() => '<span class="ck-dot"></span>').join('');
+  Voice.say('p_prueba');
+}
+$('ckStart').onclick = () => { ensureAudio(); SFX.click(); ckAsk(); };
+$('ckBack').onclick = () => { SFX.click(); Voice.stop(); renderMenu(); };
+function ckAsk() {
+  const q = CK.qs[CK.i], dots = $('ckDots').children;
+  $('ckIntro').classList.add('hidden'); $('ckAsk').classList.remove('hidden');
+  dots[CK.i].classList.add('now');
+  $('ckPrompt').innerHTML = q.prompt; $('ckFeedback').textContent = '';
+  const box = $('ckChoices'); box.innerHTML = '';
+  let answered = false;
+  q.options.forEach(opt => {
+    const b = document.createElement('button');
+    b.className = 'choice'; b.textContent = q.tile(opt); b.setAttribute('aria-label', q.aria(opt));
+    b.onclick = () => {
+      if (answered) return; answered = true;
+      const right = opt === q.answer;
+      noteAnswer(q.answer, right);
+      dots[CK.i].classList.remove('now'); dots[CK.i].classList.add(right ? 'ok' : 'miss');
+      if (right) {
+        CK.right++; SAVE.coins++; persist(); updateBank(); SFX.coin();
+        b.classList.add('right'); [...box.children].forEach(c => c !== b && c.classList.add('faded'));
+        $('ckFeedback').textContent = '¡Sí! 🎉';
+        Voice.say(MODE_INFO.es.praise[Math.random() * 2 | 0]);
+        setTimeout(ckNext, 1000);
+      } else {
+        CK.missed.push(q.answer); SFX.wrong();
+        b.classList.add('wrong'); box.children[q.options.indexOf(q.answer)].classList.add('right');
+        $('ckFeedback').textContent = q.revealText;
+        let moved = false;
+        const go = () => { if (!moved) { moved = true; setTimeout(ckNext, 400); } };
+        Voice.seq(q.reveal, go); setTimeout(go, 6000);
+      }
+    };
+    box.appendChild(b);
+  });
+  $('ckSay').onclick = () => Voice.seq(q.replay);
+  Voice.seq(q.ask);
+}
+function ckNext() { if ($('checkup').classList.contains('hidden')) return; CK.i++; if (CK.i < CK.qs.length) ckAsk(); else ckFinish(); }
+function ckFinish() {
+  const node = CK.node, W = VOCAB.words, missed = [...new Set(CK.missed)];
+  Object.assign(node, { done: true, score: CK.right, total: CK.qs.length, missed });
+  SAVE.coins += 3; persist(); updateBank(); // 3 bonus coins for finishing
+  syncEsPath(); // builds the next level now, from what he just showed
+  const nxt = SAVE.esPath[SAVE.esPath.indexOf(node) + 1];
+  $('ckAsk').classList.add('hidden'); $('ckDone').classList.remove('hidden');
+  $('ckScore').textContent = `¡${CK.right} de ${CK.qs.length}!`;
+  $('ckMissedRow').classList.toggle('hidden', !missed.length);
+  $('ckMissed').textContent = missed.map(id => W[id].pic).join('');
+  $('ckNew').textContent = nxt.fresh.map(id => W[id].pic).join('') || '🔁';
+  const known = introducedWords().filter(isKnown).length;
+  $('ckParent').textContent = `Para mamá y papá: acertó ${CK.right} de ${CK.qs.length}`
+    + (missed.length ? `; practicará ${missed.map(id => `${W[id].es} (${W[id].en})`).join(', ')}` : '')
+    + `. El nivel ${nxt.lvl} repasa ${nxt.review.length} y enseña ${nxt.fresh.length} palabras nuevas`
+    + (nxt.fresh.length ? ` (${nxt.fresh.map(id => W[id].es).join(', ')})` : '') + `. Palabras comprobadas que ya sabe: ${known}.`;
+  $('ckNext').onclick = () => { SFX.click(); openLearn('es', nxt.lvl); };
+  SFX.win(); confetti();
+  Voice.seq(['p_sabes', ...(missed.length ? ['p_practicar'] : []), 'p_nuevas']);
+}
 
 renderHome();

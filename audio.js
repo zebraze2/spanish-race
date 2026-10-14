@@ -168,4 +168,6 @@ const SFX = {
   unlock:  () => [659, 784, 988, 1319, 1568].forEach((f, i) => tone(f, .25, 'triangle', i * .09, .1)),
   sputter: () => { for (let i = 0; i < 5; i++) tone(70 + Math.random() * 30, .08, 'square', i * .17, .1); },
   click:   () => tone(620, .05, 'square', 0, .04),
+  whoosh:  () => noise(.6, 0, .15, 700, .5),
+  moo:     () => { tone(150, .9, 'sawtooth', 0, .07, 100); tone(75, .9, 'sine', 0, .1, 60); },
 };
