@@ -1,14 +1,20 @@
 /* Screens: home (pick Spanish or English), level map, practice cards, the reward
    screen (stars, then coins flying into your coin box), and the car shop.
-   Parent shortcuts: ?unlock=all opens every level for this visit, ?reset wipes progress. */
+   Parent shortcuts: ?unlock=all opens every level for this visit, ?reset wipes progress,
+   ?restore=es10 (or en12) marks levels 1-10 done again if progress was ever lost (never lowers
+   stars; add &coins=50 to top coins back up), ?save=test plays on a separate throwaway save. */
+const q0 = new URLSearchParams(location.search);
+const SAVE_KEY = 'cdp-save' + (q0.get('save') ? '-' + q0.get('save').replace(/\W/g, '') : '');
 const SAVE = (() => {
   // vocab: what he knows per Spanish word · esPath: quizzes and generated levels after level 10
   const blank = () => ({ stars: { es: {}, en: {} }, coins: 0, car: 0, owned: [0], lang: 'es', vocab: {}, esPath: [] });
   let s = blank();
   try {
-    const q = new URLSearchParams(location.search);
-    if (q.has('reset')) localStorage.removeItem('cdp-save');
-    const saved = JSON.parse(localStorage.getItem('cdp-save') || '{}');
+    const q = q0;
+    if (q.has('reset')) { localStorage.removeItem(SAVE_KEY); localStorage.removeItem(SAVE_KEY + '-backup'); }
+    // every save is also kept in a backup slot; if the main one ever goes missing, use the backup
+    const raw = localStorage.getItem(SAVE_KEY) || localStorage.getItem(SAVE_KEY + '-backup');
+    const saved = JSON.parse(raw || '{}');
     if (saved.stars && !saved.stars.es) saved.stars = { es: saved.stars, en: {} }; // older saves were Spanish-only
     s = { ...s, ...saved, stars: { ...s.stars, ...(saved.stars || {}) } };
     if (s.enLayout !== 2) { // four first-sound levels were added at 15: old English 15-20 are now 19-24
@@ -16,13 +22,22 @@ const SAVE = (() => {
       for (const [k, v] of Object.entries(s.stars.en)) moved[+k >= 15 ? +k + 4 : +k] = v;
       s.stars.en = moved; s.enLayout = 2;
     }
+    for (const r of q.getAll('restore')) { // e.g. es10: levels 1-10 of Spanish count as done again
+      const m = /^(es|en)(\d+)$/.exec(r);
+      if (m) for (let lvl = 1; lvl <= +m[2]; lvl++) s.stars[m[1]][lvl] = 3;
+    }
+    if (q.has('coins')) s.coins = Math.max(s.coins, +q.get('coins') || 0);
     if (q.get('unlock') === 'all') s.unlockAll = true;
   } catch {}
   return s;
 })();
 function persist() {
-  try { const { unlockAll, ...keep } = SAVE; localStorage.setItem('cdp-save', JSON.stringify(keep)); } catch {}
+  try {
+    const { unlockAll, ...keep } = SAVE, json = JSON.stringify(keep);
+    localStorage.setItem(SAVE_KEY, json); localStorage.setItem(SAVE_KEY + '-backup', json);
+  } catch {}
 }
+if (q0.has('restore') || q0.has('coins')) persist(); // keep a restore even if he closes the page right away
 
 const SCREENS = ['home', 'menu', 'learn', 'race', 'reward', 'shop', 'pick', 'checkup'];
 function show(id) { for (const s of SCREENS) $(s).classList.toggle('hidden', s !== id); }
