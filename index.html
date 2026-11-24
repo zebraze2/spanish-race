@@ -2,11 +2,21 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
+<script>
+  // Car Bounce now lives at bregan.org/bounce. The old GitHub Pages address forwards there and
+  // carries his saved progress along in the #fragment (it never leaves the browser); the new
+  // site merges it in (screens.js). ?save=NAME carries a test save instead of his real one.
+  if (location.hostname === 'zebraze2.github.io') {
+    var name = new URLSearchParams(location.search).get('save'), key = 'cdp-save' + (name ? '-' + name.replace(/\W/g, '') : ''), raw = null;
+    try { raw = localStorage.getItem(key) || localStorage.getItem(key + '-backup'); } catch (e) {}
+    location.replace('https://bregan.org/bounce/' + location.search + (raw ? '#carry=' + encodeURIComponent(raw) : ''));
+  }
+</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>Carrera de Palabras</title>
+<title>Car Bounce</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Andika:wght@400;700&family=Baloo+2:wght@600;800&family=Lilita+One&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=94e83662">
+<link rel="stylesheet" href="style.css?v=687517eb">
 </head>
 <body>
 
@@ -18,7 +28,7 @@
       <div class="bank"><span class="coin"></span><span class="bank-count">0</span></div>
     </div>
   </div>
-  <h1 class="title chunky-text">Carrera de <span class="accent">Palabras</span></h1>
+  <h1 class="title chunky-text">Car <span class="accent">Bounce</span></h1>
   <div class="modes">
     <button class="mode es" id="modeEs"><div class="big">🇪🇸</div><div class="nm">Español</div></button>
     <button class="mode en" id="modeEn"><div class="big abc">abc</div><div class="nm">English</div></button>
@@ -148,19 +158,19 @@
   </div>
 </section>
 
-<script src="words.js?v=94e83662"></script>
-<script src="english.js?v=94e83662"></script>
-<script src="clips.js?v=94e83662"></script>
-<script src="audio.js?v=94e83662"></script>
-<script src="questions.js?v=94e83662"></script>
-<script src="adaptive.js?v=94e83662"></script>
-<script src="art-scene.js?v=94e83662"></script>
-<script src="art-cars.js?v=94e83662"></script>
-<script src="art-cars2.js?v=94e83662"></script>
-<script src="art-obstacles.js?v=94e83662"></script>
-<script src="art-gators.js?v=94e83662"></script>
-<script src="art-obstacles2.js?v=94e83662"></script>
-<script src="race.js?v=94e83662"></script>
-<script src="screens.js?v=94e83662"></script>
+<script src="words.js?v=687517eb"></script>
+<script src="english.js?v=687517eb"></script>
+<script src="clips.js?v=687517eb"></script>
+<script src="audio.js?v=687517eb"></script>
+<script src="questions.js?v=687517eb"></script>
+<script src="adaptive.js?v=687517eb"></script>
+<script src="art-scene.js?v=687517eb"></script>
+<script src="art-cars.js?v=687517eb"></script>
+<script src="art-cars2.js?v=687517eb"></script>
+<script src="art-obstacles.js?v=687517eb"></script>
+<script src="art-gators.js?v=687517eb"></script>
+<script src="art-obstacles2.js?v=687517eb"></script>
+<script src="race.js?v=687517eb"></script>
+<script src="screens.js?v=687517eb"></script>
 </body>
 </html>

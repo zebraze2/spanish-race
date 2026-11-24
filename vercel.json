@@ -1,0 +1,6 @@
+{
+  "rewrites": [
+    { "source": "/bounce/", "destination": "/index.html" },
+    { "source": "/bounce/:path*", "destination": "/:path*" }
+  ]
+}

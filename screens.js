@@ -5,23 +5,43 @@
    stars; add &coins=50 to top coins back up), ?save=test plays on a separate throwaway save. */
 const q0 = new URLSearchParams(location.search);
 const SAVE_KEY = 'cdp-save' + (q0.get('save') ? '-' + q0.get('save').replace(/\W/g, '') : '');
+// vocab: what he knows per Spanish word · esPath: quizzes and generated levels after level 10
+const blankSave = () => ({ stars: { es: {}, en: {} }, coins: 0, car: 0, owned: [0], lang: 'es', vocab: {}, esPath: [] });
+// Bring a saved game from any older version up to today's shape (never drops anything).
+function upgradeSave(saved) {
+  if (saved.stars && !saved.stars.es) saved.stars = { es: saved.stars, en: {} }; // older saves were Spanish-only
+  const s = { ...blankSave(), ...saved, stars: { ...blankSave().stars, ...(saved.stars || {}) } };
+  if (s.enLayout !== 2) { // four first-sound levels were added at 15: old English 15-20 are now 19-24
+    const moved = {};
+    for (const [k, v] of Object.entries(s.stars.en)) moved[+k >= 15 ? +k + 4 : +k] = v;
+    s.stars.en = moved; s.enLayout = 2;
+  }
+  return s;
+}
+// Combine two saves keeping the best of each: highest stars, most coins, every car, the longer
+// Spanish path and the word records with more history. Used when progress moves to a new address.
+function mergeSaves(a, b) {
+  const out = { ...b, ...a, stars: { es: {}, en: {} }, vocab: { ...b.vocab } };
+  for (const lang of ['es', 'en']) for (const src of [a, b]) for (const [k, v] of Object.entries(src.stars[lang])) out.stars[lang][k] = Math.max(out.stars[lang][k] || 0, v);
+  out.coins = Math.max(a.coins, b.coins);
+  out.owned = [...new Set([...b.owned, ...a.owned])].sort((x, y) => x - y);
+  out.car = a.car !== 0 && out.owned.includes(a.car) ? a.car : b.car; // a fresh save's default car doesn't override his pick
+  for (const [id, m] of Object.entries(a.vocab)) { const o = out.vocab[id]; if (!o || m.c + m.w >= o.c + o.w) out.vocab[id] = m; }
+  out.esPath = a.esPath.length >= b.esPath.length ? a.esPath : b.esPath;
+  return out;
+}
+let carried = false;
 const SAVE = (() => {
-  // vocab: what he knows per Spanish word · esPath: quizzes and generated levels after level 10
-  const blank = () => ({ stars: { es: {}, en: {} }, coins: 0, car: 0, owned: [0], lang: 'es', vocab: {}, esPath: [] });
-  let s = blank();
+  let s = blankSave();
   try {
     const q = q0;
     if (q.has('reset')) { localStorage.removeItem(SAVE_KEY); localStorage.removeItem(SAVE_KEY + '-backup'); }
     // every save is also kept in a backup slot; if the main one ever goes missing, use the backup
     const raw = localStorage.getItem(SAVE_KEY) || localStorage.getItem(SAVE_KEY + '-backup');
-    const saved = JSON.parse(raw || '{}');
-    if (saved.stars && !saved.stars.es) saved.stars = { es: saved.stars, en: {} }; // older saves were Spanish-only
-    s = { ...s, ...saved, stars: { ...s.stars, ...(saved.stars || {}) } };
-    if (s.enLayout !== 2) { // four first-sound levels were added at 15: old English 15-20 are now 19-24
-      const moved = {};
-      for (const [k, v] of Object.entries(s.stars.en)) moved[+k >= 15 ? +k + 4 : +k] = v;
-      s.stars.en = moved; s.enLayout = 2;
-    }
+    s = upgradeSave(JSON.parse(raw || '{}'));
+    // Progress carried over from the old address (see index.html): merge, never replace.
+    const carry = /^#carry=(.+)$/.exec(location.hash);
+    if (carry) { s = mergeSaves(s, upgradeSave(JSON.parse(decodeURIComponent(carry[1])))); carried = true; }
     for (const r of q.getAll('restore')) { // e.g. es10: levels 1-10 of Spanish count as done again
       const m = /^(es|en)(\d+)$/.exec(r);
       if (m) for (let lvl = 1; lvl <= +m[2]; lvl++) s.stars[m[1]][lvl] = 3;
@@ -37,7 +57,8 @@ function persist() {
     localStorage.setItem(SAVE_KEY, json); localStorage.setItem(SAVE_KEY + '-backup', json);
   } catch {}
 }
-if (q0.has('restore') || q0.has('coins')) persist(); // keep a restore even if he closes the page right away
+if (q0.has('restore') || q0.has('coins') || carried) persist(); // keep it even if he closes the page right away
+if (carried) history.replaceState(null, '', location.pathname + location.search); // the progress is saved here now
 
 const SCREENS = ['home', 'menu', 'learn', 'race', 'reward', 'shop', 'pick', 'checkup'];
 function show(id) { for (const s of SCREENS) $(s).classList.toggle('hidden', s !== id); }
@@ -401,4 +422,5 @@ function ckFinish() {
   Voice.seq(['p_sabes', ...(missed.length ? ['p_practicar'] : []), 'p_nuevas']);
 }
 
-renderHome();
+// ?demo=race opens straight into a race (used for the bregan.org homepage thumbnail)
+if (q0.get('demo') === 'race') startRace('es', 1); else renderHome();

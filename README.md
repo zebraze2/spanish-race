@@ -1,11 +1,13 @@
-# Carrera de Palabras
+# Car Bounce
 
 A racing game for a preschooler: answer the question to jump the obstacle and beat the robot car.
 
-- **Español** – 10 levels of everyday Spanish words (all prompts in Spanish).
-- **English** – 20 levels: letter names → letter sounds → first/last sounds → 3-letter words.
+- **Español** – 10 levels of everyday Spanish words (all prompts in Spanish), then check-in quizzes
+  and adaptive levels built from what he knows and misses.
+- **English** – 24 levels: letter names → letter sounds → first/last sounds → 3-letter words.
 
-Play it: https://zebraze2.github.io/spanish-race/
+Play it: https://bregan.org/bounce/ (the old address, https://zebraze2.github.io/spanish-race/,
+forwards there and carries saved progress along).
 
 ## Running locally
 
